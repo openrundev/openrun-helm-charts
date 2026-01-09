@@ -1,0 +1,67 @@
+{{- $fullname := include "openrun.fullname" . -}}
+{{- $config := tpl (.Files.Get "files/openrun.toml.tmpl") . -}}
+{{- $configFile := "/var/lib/openrun/openrun.toml" -}}
+{{- $healthCheckPath := "/_openrun/health" -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullname }}
+  labels:
+    {{- include "openrun.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "openrun.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "openrun.selectorLabels" . | nindent 8 }}
+      annotations:
+        checksum/openrun-config: {{ $config | sha256sum | quote }}
+    spec:
+      serviceAccountName: {{ include "openrun.serviceAccountName" . }}
+      containers:
+        - name: openrun
+          {{- $tag := default .Chart.AppVersion .Values.image.tag }}
+          image: "{{ .Values.image.repository }}:{{ $tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.config.http.port }}
+{{ if .Values.config.https.enabled }}
+            - name: https
+              containerPort: {{ .Values.config.https.port }}
+{{ end }}
+{{ if .Values.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              path: {{ $healthCheckPath }}
+              port: http
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+{{ end }}
+{{ if .Values.readinessProbe.enabled }}
+          readinessProbe:
+            httpGet:
+              path: {{ $healthCheckPath }}
+              port: http
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+{{ end }}
+          volumeMounts:
+            - name: config
+              mountPath: {{ $configFile }}
+              subPath: openrun.toml
+            - name: openrun-home
+              mountPath: {{ .Values.openrunHome.mountPath }}
+      volumes:
+        - name: config
+          secret:
+            secretName: {{ include "openrun.configSecretName" . }}
+        - name: openrun-home
+          emptyDir: {}

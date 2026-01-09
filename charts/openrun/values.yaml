@@ -1,0 +1,184 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/openrundev/openrun
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  name: ""
+
+rbac:
+  create: true
+  clusterWide: true
+  extraRules: []
+
+service:
+  type: LoadBalancer
+
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 20
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 6
+
+openrunHome:
+  mountPath: /var/lib/openrun
+
+config:
+  adminUser: admin
+  serverUri: ""
+  logging:
+    level: INFO
+    console: false
+  http:
+    host: 0.0.0.0
+    port: 25222
+    redirectToHttps: true
+  https:
+    enabled: false
+    host: 0.0.0.0
+    port: 25223
+    serviceEmail: ""
+    useStaging: true
+  security:
+    adminOverTcp: true
+    adminPasswordBcrypt: ""
+    sessionSecret: ""
+    sessionBlockKey: ""
+    appDefaultAuthType: ""
+    defaultSecretsProvider: ""
+  system:
+    containerCommand: kubernetes
+    defaultDomain: "openrun.svc.cluster.local"
+  registry:
+    url: ""
+    project: ""
+    insecure: false
+    type: ""
+    username: ""
+    password: ""
+    awsRegion: ""
+  metadata:
+    database: openrun
+    auditDatabase: openrun_audit
+    fileCacheDatabase: openrun_filecache
+    sslMode: disable
+    parameters: ""
+  kubernetes:
+    namespace: ""
+
+postgres:
+  # The bundled StatefulSet is intended for demos and testing. For production,
+  # point OpenRun at a managed Postgres service or a CloudNativePG deployment.
+  enabled: true
+  clusterName: openrun-db
+  replicaCount: 1
+  image:
+    repository: postgres
+    tag: "16.4"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 5432
+    annotations: {}
+  database: openrun
+  persistence:
+    enabled: true
+    accessModes:
+      - ReadWriteOnce
+    size: 20Gi
+    storageClassName: ""
+  resources: {}
+  annotations: {}
+  podAnnotations: {}
+  podLabels: {}
+  podSecurityContext: {}
+  containerSecurityContext: {}
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
+  extraEnv: []
+  appUser:
+    username: openrun
+    password: openrun
+    existingSecretName: ""
+    usernameKey: username
+    passwordKey: password
+  superuser:
+    username: postgres
+    password: postgres
+    existingSecretName: ""
+    usernameKey: username
+    passwordKey: password
+
+externalDatabase:
+  enabled: false
+  host: ""
+  port: 5432
+  database: openrun
+  username: ""
+  password: ""
+  existingSecretName: ""
+  usernameKey: username
+  passwordKey: password
+  sslMode: disable
+  parameters: ""
+
+openrunConfigSecret:
+  name: ""
+
+registry2:
+  # The in-cluster registry is for basic setups. Production installs should
+  # use an external registry service or an existing Harbor deployment.
+  enabled: true
+  image:
+    repository: registry
+    tag: "2.8.3"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 5000
+    annotations: {}
+  persistence:
+    enabled: true
+    accessModes:
+      - ReadWriteOnce
+    size: 20Gi
+    storageClassName: ""
+  resources: {}
+  annotations: {}
+  podAnnotations: {}
+  podLabels: {}
+  podSecurityContext: {}
+  containerSecurityContext: {}
+  extraEnv: []
+  auth:
+    enabled: false
+    secretName: ""
+    existingSecretName: ""
+    username: ""
+    password: ""
+    htpasswd: ""
+    path: /etc/docker/registry/htpasswd

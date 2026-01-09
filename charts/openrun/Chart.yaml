@@ -1,0 +1,24 @@
+apiVersion: v2
+name: openrun
+type: application
+version: 0.1.0
+appVersion: 0.16.0
+
+description: OpenRun - App Deployment Simplified
+home: https://openrun.dev/
+icon: https://openrun.dev/openrun.svg
+keywords:
+  - openrun
+  - declarative
+  - deployment
+  - apps
+  - internal-tools
+  - open-source
+maintainers:
+  - email: contact@openrun.dev
+    name: openrun
+    url: https://openrun.dev/
+sources:
+  - https://github.com/openrundev/openrun-helm-charts.git
+
+deprecated: false

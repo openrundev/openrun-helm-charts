@@ -1,0 +1,27 @@
+Thank you for installing OpenRun.
+
+1. API endpoint:
+   kubectl get svc {{ include "openrun.fullname" . }} -n {{ .Release.Namespace }}
+   The service exposes port {{ .Values.config.http.port }} (LoadBalancer).
+
+2. Postgres:
+{{- if .Values.postgres.enabled }}
+   - Service: {{ include "openrun.postgresHostname" . }}:{{ .Values.postgres.service.port }}
+   - Database: {{ .Values.postgres.database }}
+   - Username: {{ .Values.postgres.appUser.username }}
+{{- else }}
+   - External database host: {{ .Values.externalDatabase.host }}:{{ .Values.externalDatabase.port }}
+   - Database: {{ .Values.externalDatabase.database }}
+   - Username: {{ .Values.externalDatabase.username }} (or the value stored in {{ .Values.externalDatabase.existingSecretName }})
+{{- end }}
+
+3. Registry:
+{{- if .Values.registry2.enabled }}
+   - Service: {{ include "openrun.registryHostname" . }}:{{ .Values.registry2.service.port }}
+   - Authentication: {{- if .Values.registry2.auth.enabled }}enabled{{- if .Values.registry2.auth.username }} (user: {{ .Values.registry2.auth.username }}){{- end }}{{- else }}disabled{{- end }}
+{{- else }}
+   - External registry endpoint: {{ .Values.config.registry.url }}
+   - User: {{ .Values.config.registry.username }}
+{{- end }}
+
+Review charts/openrun/README.md for configuration examples.

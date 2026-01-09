@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ printf "%s-apps" .Release.Namespace }}
+  labels:
+    {{- include "openrun.labels" . | nindent 4 }}
+    app.kubernetes.io/component: "apps"
+  annotations:
+    meta.helm.sh/release-name: {{ .Release.Name | quote }}
+    meta.helm.sh/release-namespace: {{ .Release.Namespace | quote }}
+    openrun.io/description: "Namespace for OpenRun managed applications"

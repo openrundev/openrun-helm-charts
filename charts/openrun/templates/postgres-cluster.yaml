@@ -1,0 +1,189 @@
+{{- if .Values.postgres.enabled }}
+{{- $clusterName := include "openrun.postgresClusterName" . -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $clusterName }}
+  labels:
+    {{- include "openrun.postgresLabels" . | nindent 4 }}
+  {{- with .Values.postgres.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.postgres.service.type }}
+  ports:
+    - name: postgres
+      port: {{ .Values.postgres.service.port }}
+      targetPort: postgres
+      protocol: TCP
+  selector:
+    {{- include "openrun.postgresSelectorLabels" . | nindent 4 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "openrun.postgresInitConfigName" . }}
+  labels:
+    {{- include "openrun.postgresLabels" . | nindent 4 }}
+data:
+  00-create-app-user.sh: |
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "${POSTGRES_APP_USER:-}" || -z "${POSTGRES_APP_PASSWORD:-}" ]]; then
+      echo "POSTGRES_APP_USER/POSTGRES_APP_PASSWORD not provided; skipping app user bootstrap"
+      exit 0
+    fi
+
+    APP_DB="${POSTGRES_APP_DATABASE:-${POSTGRES_DB:-postgres}}"
+
+    SQL="DO
+    \$do$
+    BEGIN
+      IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'app_user') THEN
+        EXECUTE format('CREATE ROLE %I LOGIN PASSWORD %L', :'app_user', :'app_password');
+      ELSE
+        EXECUTE format('ALTER ROLE %I WITH PASSWORD %L', :'app_user', :'app_password');
+      END IF;
+      EXECUTE format('ALTER DATABASE %I OWNER TO %I', :'app_db', :'app_user');
+      EXECUTE format('GRANT ALL PRIVILEGES ON DATABASE %I TO %I', :'app_db', :'app_user');
+    END
+    \$do$;"
+
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" \
+      -v app_user="${POSTGRES_APP_USER}" \
+      -v app_password="${POSTGRES_APP_PASSWORD}" \
+      -v app_db="${APP_DB}" \
+      -c "$SQL"
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ $clusterName }}
+  labels:
+    {{- include "openrun.postgresLabels" . | nindent 4 }}
+  {{- with .Values.postgres.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  serviceName: {{ $clusterName }}
+  replicas: {{ .Values.postgres.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "openrun.postgresSelectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "openrun.postgresSelectorLabels" . | nindent 8 }}
+        {{- with .Values.postgres.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.postgres.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- with .Values.postgres.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: postgres
+          image: "{{ .Values.postgres.image.repository }}:{{ .Values.postgres.image.tag }}"
+          imagePullPolicy: {{ .Values.postgres.image.pullPolicy }}
+          ports:
+            - name: postgres
+              containerPort: {{ .Values.postgres.service.port }}
+              protocol: TCP
+          env:
+            - name: POSTGRES_DB
+              value: {{ .Values.postgres.database | quote }}
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "openrun.postgresSuperuserSecretName" . }}
+                  key: {{ .Values.postgres.superuser.usernameKey }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "openrun.postgresSuperuserSecretName" . }}
+                  key: {{ .Values.postgres.superuser.passwordKey }}
+            - name: POSTGRES_APP_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "openrun.postgresAppSecretName" . }}
+                  key: {{ .Values.postgres.appUser.usernameKey }}
+            - name: POSTGRES_APP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "openrun.postgresAppSecretName" . }}
+                  key: {{ .Values.postgres.appUser.passwordKey }}
+            - name: POSTGRES_APP_DATABASE
+              value: {{ .Values.postgres.database | quote }}
+            {{- with .Values.postgres.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- if .Values.postgres.livenessProbe.enabled }}
+          livenessProbe:
+            tcpSocket:
+              port: postgres
+            initialDelaySeconds: {{ .Values.postgres.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.postgres.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.postgres.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.postgres.livenessProbe.failureThreshold }}
+          {{- end }}
+          {{- if .Values.postgres.readinessProbe.enabled }}
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"
+            initialDelaySeconds: {{ .Values.postgres.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.postgres.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.postgres.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.postgres.readinessProbe.failureThreshold }}
+          {{- end }}
+          {{- with .Values.postgres.containerSecurityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+            - name: init-scripts
+              mountPath: /docker-entrypoint-initdb.d
+          {{- with .Values.postgres.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: init-scripts
+          configMap:
+            name: {{ include "openrun.postgresInitConfigName" . }}
+            defaultMode: 0755
+        {{- if not .Values.postgres.persistence.enabled }}
+        - name: data
+          emptyDir: {}
+        {{- end }}
+  {{- if .Values.postgres.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          {{- include "openrun.postgresLabels" . | nindent 10 }}
+      spec:
+        accessModes:
+          {{- range .Values.postgres.persistence.accessModes }}
+          - {{ . }}
+          {{- end }}
+        {{- with .Values.postgres.persistence.storageClassName }}
+        storageClassName: {{ . | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.postgres.persistence.size }}
+  {{- end }}
+{{- end }}
