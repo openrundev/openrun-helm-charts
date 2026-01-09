@@ -27,35 +27,110 @@ metadata:
   labels:
     {{- include "openrun.postgresLabels" . | nindent 4 }}
 data:
-  00-create-app-user.sh: |
+  ensure-app-user.sh: |
     #!/usr/bin/env bash
     set -euo pipefail
+
+    MODE="${1:-reconcile}"
 
     if [[ -z "${POSTGRES_APP_USER:-}" || -z "${POSTGRES_APP_PASSWORD:-}" ]]; then
       echo "POSTGRES_APP_USER/POSTGRES_APP_PASSWORD not provided; skipping app user bootstrap"
       exit 0
     fi
 
+    escape_literal() {
+      printf "%s" "$1" | sed "s/'/''/g"
+    }
+
     APP_DB="${POSTGRES_APP_DATABASE:-${POSTGRES_DB:-postgres}}"
+    DATABASES=()
+    add_database() {
+      local db="$1"
+      if [[ -z "$db" ]]; then
+        return
+      fi
+      for existing in "${DATABASES[@]:-}"; do
+        if [[ "$existing" == "$db" ]]; then
+          return
+        fi
+      done
+      DATABASES+=("$db")
+    }
 
-    SQL="DO
-    \$do$
+    add_database "$APP_DB"
+    for extra in ${POSTGRES_EXTRA_DATABASES:-}; do
+      add_database "$extra"
+    done
+
+    APP_USER_ESCAPED="$(escape_literal "$POSTGRES_APP_USER")"
+    APP_PASSWORD_ESCAPED="$(escape_literal "$POSTGRES_APP_PASSWORD")"
+
+    ROLE_SQL="DO
+    \$\$
     BEGIN
-      IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'app_user') THEN
-        EXECUTE format('CREATE ROLE %I LOGIN PASSWORD %L', :'app_user', :'app_password');
+      IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '${APP_USER_ESCAPED}') THEN
+        EXECUTE format('CREATE ROLE %I LOGIN PASSWORD %L', '${APP_USER_ESCAPED}', '${APP_PASSWORD_ESCAPED}');
       ELSE
-        EXECUTE format('ALTER ROLE %I WITH PASSWORD %L', :'app_user', :'app_password');
+        EXECUTE format('ALTER ROLE %I WITH PASSWORD %L', '${APP_USER_ESCAPED}', '${APP_PASSWORD_ESCAPED}');
       END IF;
-      EXECUTE format('ALTER DATABASE %I OWNER TO %I', :'app_db', :'app_user');
-      EXECUTE format('GRANT ALL PRIVILEGES ON DATABASE %I TO %I', :'app_db', :'app_user');
     END
-    \$do$;"
+    \$\$;"
 
-    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" \
-      -v app_user="${POSTGRES_APP_USER}" \
-      -v app_password="${POSTGRES_APP_PASSWORD}" \
-      -v app_db="${APP_DB}" \
-      -c "$SQL"
+    run_psql() {
+      local sql="$1"
+      local dbname="${2:-${POSTGRES_DB:-postgres}}"
+      local mode="${3:-}"
+      local -a host_args=()
+      if [[ "$mode" == "with-host" ]]; then
+        host_args=(-h 127.0.0.1)
+      fi
+      PGPASSWORD="${POSTGRES_PASSWORD:-}" psql -v ON_ERROR_STOP=1 \
+        --username "$POSTGRES_USER" \
+        --dbname "$dbname" \
+        "${host_args[@]}" \
+        -c "$sql"
+    }
+
+    ensure_database() {
+      local db="$1"
+      local mode="${2:-}"
+      local -a host_args=()
+      if [[ "$mode" == "with-host" ]]; then
+        host_args=(-h 127.0.0.1)
+      fi
+      local escaped
+      escaped="$(escape_literal "$db")"
+      local exists
+      exists=$(PGPASSWORD="${POSTGRES_PASSWORD:-}" psql --username "$POSTGRES_USER" --dbname postgres \
+        "${host_args[@]}" -Atqc "SELECT 1 FROM pg_database WHERE datname='${escaped}'" || true)
+      if [[ -z "$exists" ]]; then
+        PGPASSWORD="${POSTGRES_PASSWORD:-}" createdb "${host_args[@]}" -U "$POSTGRES_USER" -O "$POSTGRES_APP_USER" "$db"
+      fi
+      run_psql "ALTER DATABASE \"${db}\" OWNER TO \"${POSTGRES_APP_USER}\"" postgres "$mode"
+      run_psql "GRANT ALL PRIVILEGES ON DATABASE \"${db}\" TO \"${POSTGRES_APP_USER}\"" postgres "$mode"
+    }
+
+    run_all() {
+      local mode="${1:-}"
+      run_psql "$ROLE_SQL" "${POSTGRES_DB:-postgres}" "$mode"
+      for db in "${DATABASES[@]}"; do
+        ensure_database "$db" "$mode"
+      done
+    }
+
+    if [[ "$MODE" == "initdb" ]]; then
+      run_all
+      exit 0
+    fi
+
+    echo "Waiting for Postgres to accept connections..."
+    until pg_isready -h 127.0.0.1 -p "{{ .Values.postgres.service.port }}" -U "$POSTGRES_USER" >/dev/null 2>&1; do
+      sleep 2
+    done
+    run_all with-host
+  00-create-app-user.sh: |
+    #!/usr/bin/env bash
+    exec /opt/openrun/bin/ensure-app-user.sh initdb
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -122,9 +197,16 @@ spec:
                   key: {{ .Values.postgres.appUser.passwordKey }}
             - name: POSTGRES_APP_DATABASE
               value: {{ .Values.postgres.database | quote }}
+            - name: POSTGRES_EXTRA_DATABASES
+              value: {{ include "openrun.postgresExtraDatabases" . | quote }}
             {{- with .Values.postgres.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - /opt/openrun/bin/ensure-app-user.sh
           {{- if .Values.postgres.livenessProbe.enabled }}
           livenessProbe:
             tcpSocket:
@@ -154,7 +236,13 @@ spec:
             - name: data
               mountPath: /var/lib/postgresql/data
             - name: init-scripts
-              mountPath: /docker-entrypoint-initdb.d
+              mountPath: /docker-entrypoint-initdb.d/00-create-app-user.sh
+              subPath: 00-create-app-user.sh
+              readOnly: true
+            - name: init-scripts
+              mountPath: /opt/openrun/bin/ensure-app-user.sh
+              subPath: ensure-app-user.sh
+              readOnly: true
           {{- with .Values.postgres.resources }}
           resources:
             {{- toYaml . | nindent 12 }}

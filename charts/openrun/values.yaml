@@ -46,15 +46,14 @@ config:
   http:
     host: 0.0.0.0
     port: 25222
-    redirectToHttps: true
+    redirectToHttps: false
   https:
-    enabled: false
+    enabled: true
     host: 0.0.0.0
     port: 25223
     serviceEmail: ""
     useStaging: true
   security:
-    adminOverTcp: true
     adminPasswordBcrypt: ""
     sessionSecret: ""
     sessionBlockKey: ""
@@ -74,7 +73,6 @@ config:
   metadata:
     database: openrun
     auditDatabase: openrun_audit
-    fileCacheDatabase: openrun_filecache
     sslMode: disable
     parameters: ""
   kubernetes:

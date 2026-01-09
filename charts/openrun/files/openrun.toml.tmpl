@@ -45,10 +45,8 @@ default_secrets_provider = "{{ . }}"
 [metadata]
 {{- $metadataDb := include "openrun.databaseConnectionFor" (dict "context" . "database" (default "openrun" .Values.config.metadata.database)) }}
 {{- $auditDb := include "openrun.databaseConnectionFor" (dict "context" . "database" (default "openrun_audit" .Values.config.metadata.auditDatabase)) }}
-{{- $fileDb := include "openrun.databaseConnectionFor" (dict "context" . "database" (default "openrun_filecache" .Values.config.metadata.fileCacheDatabase)) }}
 db_connection = "{{ $metadataDb }}"
 audit_db_connection = "{{ $auditDb }}"
-file_cache_connection = "{{ $fileDb }}"
 
 [system]
 container_command = "{{ default "kubernetes" .Values.config.system.containerCommand }}"
