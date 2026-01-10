@@ -12,6 +12,8 @@ level = "{{ .Values.config.logging.level }}"
 {{- if .Values.config.logging.console }}
 console = true
 {{- end }}
+file = {{ .Values.config.logging.file }}
+access_logging = {{ .Values.config.logging.access_logging }}
 
 [http]
 host = "{{ .Values.config.http.host }}"
@@ -25,7 +27,6 @@ service_email = "{{ .Values.config.https.serviceEmail }}"
 use_staging = {{ .Values.config.https.useStaging }}
 
 [security]
-admin_over_tcp = {{ .Values.config.security.adminOverTcp }}
 {{- with .Values.config.security.appDefaultAuthType }}
 app_default_auth_type = "{{ . }}"
 {{- end }}
@@ -49,10 +50,13 @@ db_connection = "{{ $metadataDb }}"
 audit_db_connection = "{{ $auditDb }}"
 
 [system]
-container_command = "{{ default "kubernetes" .Values.config.system.containerCommand }}"
-{{- with .Values.config.system.defaultDomain }}
-default_domain = "{{ . }}"
+container_command = "kubernetes"
+{{- $ns := default .Release.Namespace .Values.config.kubernetes.namespace }}
+{{- $defaultDomain := .Values.config.system.defaultDomain }}
+{{- if not $defaultDomain }}
+{{- $defaultDomain = printf "openrun.%s.svc.cluster.local" $ns }}
 {{- end }}
+default_domain = "{{ $defaultDomain }}"
 
 [kubernetes]
 namespace = "{{ default .Release.Namespace .Values.config.kubernetes.namespace }}"

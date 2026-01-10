@@ -42,7 +42,9 @@ config:
   serverUri: ""
   logging:
     level: INFO
-    console: false
+    console: true
+    file: false
+    access_logging: true
   http:
     host: 0.0.0.0
     port: 25222
@@ -60,8 +62,7 @@ config:
     appDefaultAuthType: ""
     defaultSecretsProvider: ""
   system:
-    containerCommand: kubernetes
-    defaultDomain: "openrun.svc.cluster.local"
+    defaultDomain: ""
   registry:
     url: ""
     project: ""
