@@ -66,7 +66,7 @@ config:
   registry:
     url: ""
     project: ""
-    insecure: false
+    insecure: true
     type: ""
     username: ""
     password: ""
@@ -148,10 +148,10 @@ externalDatabase:
 openrunConfigSecret:
   name: ""
 
-registry2:
+registry:
   # The in-cluster registry is for basic setups. Production installs should
   # use an external registry service or an existing Harbor deployment.
-  enabled: true
+  enabled: false
   image:
     repository: registry
     tag: "2.8.3"

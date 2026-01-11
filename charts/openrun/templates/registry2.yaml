@@ -1,11 +1,11 @@
-{{- if .Values.registry2.enabled }}
-{{- $port := .Values.registry2.service.port | default 5000 -}}
-{{- $authEnabled := .Values.registry2.auth.enabled -}}
-{{- $authSecretName := (default (include "openrun.registryAuthSecretName" .) .Values.registry2.auth.existingSecretName) -}}
-{{- if and $authEnabled (not .Values.registry2.auth.existingSecretName) (not .Values.registry2.auth.htpasswd) }}
-{{- fail "registry2.auth.htpasswd must be provided when registry2.auth.enabled=true and registry2.auth.existingSecretName is empty" }}
+{{- if .Values.registry.enabled }}
+{{- $port := .Values.registry.service.port | default 5000 -}}
+{{- $authEnabled := .Values.registry.auth.enabled -}}
+{{- $authSecretName := (default (include "openrun.registryAuthSecretName" .) .Values.registry.auth.existingSecretName) -}}
+{{- if and $authEnabled (not .Values.registry.auth.existingSecretName) (not .Values.registry.auth.htpasswd) }}
+{{- fail "registry.auth.htpasswd must be provided when registry.auth.enabled=true and registry.auth.existingSecretName is empty" }}
 {{- end }}
-{{- if and $authEnabled (not .Values.registry2.auth.existingSecretName) }}
+{{- if and $authEnabled (not .Values.registry.auth.existingSecretName) }}
 apiVersion: v1
 kind: Secret
 metadata:
@@ -14,10 +14,10 @@ metadata:
     {{- include "openrun.registryLabels" . | nindent 4 }}
 type: Opaque
 stringData:
-  htpasswd: {{ .Values.registry2.auth.htpasswd | quote }}
+  htpasswd: {{ .Values.registry.auth.htpasswd | quote }}
 ---
 {{- end }}
-{{- if .Values.registry2.persistence.enabled }}
+{{- if .Values.registry.persistence.enabled }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -26,15 +26,15 @@ metadata:
     {{- include "openrun.registryLabels" . | nindent 4 }}
 spec:
   accessModes:
-    {{- range .Values.registry2.persistence.accessModes }}
+    {{- range .Values.registry.persistence.accessModes }}
     - {{ . }}
     {{- end }}
-  {{- with .Values.registry2.persistence.storageClassName }}
+  {{- with .Values.registry.persistence.storageClassName }}
   storageClassName: {{ . | quote }}
   {{- end }}
   resources:
     requests:
-      storage: {{ .Values.registry2.persistence.size }}
+      storage: {{ .Values.registry.persistence.size }}
 ---
 {{- end }}
 apiVersion: v1
@@ -43,12 +43,12 @@ metadata:
   name: {{ include "openrun.registryServiceName" . }}
   labels:
     {{- include "openrun.registryLabels" . | nindent 4 }}
-  {{- with .Values.registry2.service.annotations }}
+  {{- with .Values.registry.service.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  type: {{ .Values.registry2.service.type }}
+  type: {{ .Values.registry.service.type }}
   ports:
     - name: registry
       port: {{ $port }}
@@ -63,7 +63,7 @@ metadata:
   name: {{ include "openrun.registryServiceName" . }}
   labels:
     {{- include "openrun.registryLabels" . | nindent 4 }}
-  {{- with .Values.registry2.annotations }}
+  {{- with .Values.registry.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
@@ -76,22 +76,22 @@ spec:
     metadata:
       labels:
         {{- include "openrun.registrySelectorLabels" . | nindent 8 }}
-        {{- with .Values.registry2.podLabels }}
+        {{- with .Values.registry.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
-      {{- with .Values.registry2.podAnnotations }}
+      {{- with .Values.registry.podAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
     spec:
-      {{- with .Values.registry2.podSecurityContext }}
+      {{- with .Values.registry.podSecurityContext }}
       securityContext:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       containers:
         - name: registry
-          image: "{{ .Values.registry2.image.repository }}:{{ .Values.registry2.image.tag }}"
-          imagePullPolicy: {{ .Values.registry2.image.pullPolicy }}
+          image: "{{ .Values.registry.image.repository }}:{{ .Values.registry.image.tag }}"
+          imagePullPolicy: {{ .Values.registry.image.pullPolicy }}
           ports:
             - name: registry
               containerPort: {{ $port }}
@@ -107,12 +107,12 @@ spec:
             - name: REGISTRY_AUTH_HTPASSWD_REALM
               value: registry
             - name: REGISTRY_AUTH_HTPASSWD_PATH
-              value: {{ .Values.registry2.auth.path | quote }}
+              value: {{ .Values.registry.auth.path | quote }}
             {{- end }}
-            {{- with .Values.registry2.extraEnv }}
+            {{- with .Values.registry.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
-          {{- with .Values.registry2.containerSecurityContext }}
+          {{- with .Values.registry.containerSecurityContext }}
           securityContext:
             {{- toYaml . | nindent 12 }}
           {{- end }}
@@ -121,17 +121,17 @@ spec:
               mountPath: /var/lib/registry
             {{- if $authEnabled }}
             - name: registry-auth
-              mountPath: {{ .Values.registry2.auth.path | quote }}
+              mountPath: {{ .Values.registry.auth.path | quote }}
               subPath: htpasswd
               readOnly: true
             {{- end }}
-          {{- with .Values.registry2.resources }}
+          {{- with .Values.registry.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
       volumes:
         - name: registry-data
-          {{- if .Values.registry2.persistence.enabled }}
+          {{- if .Values.registry.persistence.enabled }}
           persistentVolumeClaim:
             claimName: {{ include "openrun.registryDataPVCName" . }}
           {{- else }}

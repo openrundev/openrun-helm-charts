@@ -41,23 +41,23 @@ app.kubernetes.io/instance: {{ .Release.Name | quote }}
 {{- end -}}
 
 {{- define "openrun.configSecretName" -}}
-  {{- if .Values.openrunConfigSecret.name -}}
-    {{- .Values.openrunConfigSecret.name -}}
-  {{- else -}}
-    {{- printf "%s-config" (include "openrun.fullname" .) -}}
-  {{- end -}}
+{{- if .Values.openrunConfigSecret.name -}}
+{{- .Values.openrunConfigSecret.name -}}
+{{- else -}}
+{{- printf "%s-config" (include "openrun.fullname" .) -}}
+{{- end -}}
 {{- end -}}
 
 {{- define "openrun.postgresClusterName" -}}
-  {{- if .Values.postgres.clusterName -}}
-    {{- .Values.postgres.clusterName -}}
-  {{- else -}}
-    {{- printf "%s-db" (include "openrun.fullname" .) -}}
-  {{- end -}}
+{{- if .Values.postgres.clusterName -}}
+{{- .Values.postgres.clusterName -}}
+{{- else -}}
+{{- printf "%s-db" (include "openrun.fullname" .) -}}
+{{- end -}}
 {{- end -}}
 
 {{- define "openrun.postgresInitConfigName" -}}
-  {{- printf "%s-initdb" (include "openrun.postgresClusterName" .) -}}
+{{- printf "%s-initdb" (include "openrun.postgresClusterName" .) -}}
 {{- end -}}
 
 {{- define "openrun.postgresLabels" -}}
@@ -71,35 +71,35 @@ app.kubernetes.io/component: postgres
 {{- end -}}
 
 {{- define "openrun.postgresAppSecretName" -}}
-  {{- if .Values.postgres.appUser.existingSecretName -}}
-    {{- .Values.postgres.appUser.existingSecretName -}}
-  {{- else -}}
-    {{- printf "%s-app" (include "openrun.postgresClusterName" .) -}}
-  {{- end -}}
+{{- if .Values.postgres.appUser.existingSecretName -}}
+{{- .Values.postgres.appUser.existingSecretName -}}
+{{- else -}}
+{{- printf "%s-app" (include "openrun.postgresClusterName" .) -}}
+{{- end -}}
 {{- end -}}
 
 {{- define "openrun.postgresSuperuserSecretName" -}}
-  {{- if .Values.postgres.superuser.existingSecretName -}}
-    {{- .Values.postgres.superuser.existingSecretName -}}
-  {{- else -}}
-    {{- printf "%s-superuser" (include "openrun.postgresClusterName" .) -}}
-  {{- end -}}
+{{- if .Values.postgres.superuser.existingSecretName -}}
+{{- .Values.postgres.superuser.existingSecretName -}}
+{{- else -}}
+{{- printf "%s-superuser" (include "openrun.postgresClusterName" .) -}}
+{{- end -}}
 {{- end -}}
 
 {{- define "openrun.registryServiceName" -}}
-  {{- printf "%s-registry" (include "openrun.fullname" .) -}}
+{{- printf "%s-registry" (include "openrun.fullname" .) -}}
 {{- end -}}
 
 {{- define "openrun.registryDataPVCName" -}}
-  {{- printf "%s-data" (include "openrun.registryServiceName" .) -}}
+{{- printf "%s-data" (include "openrun.registryServiceName" .) -}}
 {{- end -}}
 
 {{- define "openrun.registryAuthSecretName" -}}
-  {{- if .Values.registry2.auth.secretName -}}
-    {{- .Values.registry2.auth.secretName -}}
-  {{- else -}}
-    {{- printf "%s-registry-auth" (include "openrun.fullname" .) -}}
-  {{- end -}}
+{{- if .Values.registry.auth.secretName -}}
+{{- .Values.registry.auth.secretName -}}
+{{- else -}}
+{{- printf "%s-registry-auth" (include "openrun.fullname" .) -}}
+{{- end -}}
 {{- end -}}
 
 {{- define "openrun.registryLabels" -}}
@@ -113,38 +113,38 @@ app.kubernetes.io/component: registry
 {{- end -}}
 
 {{- define "openrun.registryHostname" -}}
-  {{- printf "%s.%s.svc.cluster.local" (include "openrun.registryServiceName" .) .Release.Namespace -}}
+{{- printf "%s.%s.svc.cluster.local" (include "openrun.registryServiceName" .) .Release.Namespace -}}
 {{- end -}}
 
 {{- define "openrun.postgresPrimaryDatabase" -}}
-  {{- default "openrun" .Values.config.metadata.database -}}
+{{- default "openrun" .Values.config.metadata.database -}}
 {{- end -}}
 
 {{- define "openrun.postgresExtraDatabases" -}}
-  {{- $dbs := list (default "openrun" .Values.config.metadata.database) (default "openrun_audit" .Values.config.metadata.auditDatabase) -}}
-  {{- $seen := dict -}}
-  {{- $result := list -}}
-  {{- range $db := $dbs }}
-    {{- if and $db (ne $db "") -}}
-      {{- if not (hasKey $seen $db) -}}
-        {{- $_ := set $seen $db true -}}
-        {{- $result = append $result $db -}}
-      {{- end -}}
+{{- $dbs := list (default "openrun" .Values.config.metadata.database) (default "openrun_audit" .Values.config.metadata.auditDatabase) (default "openrun_filecache" .Values.config.metadata.fileCacheDatabase) -}}
+{{- $seen := dict -}}
+{{- $result := list -}}
+{{- range $db := $dbs }}
+  {{- if and $db (ne $db "") -}}
+    {{- if not (hasKey $seen $db) -}}
+      {{- $_ := set $seen $db true -}}
+      {{- $result = append $result $db -}}
     {{- end -}}
   {{- end -}}
-  {{- join " " $result -}}
+{{- end -}}
+{{- join " " $result -}}
 {{- end -}}
 
 {{- define "openrun.registryUrl" -}}
-  {{- if and .Values.registry2.enabled (not .Values.config.registry.url) -}}
-    {{- printf "%s:%v" (include "openrun.registryHostname" .) (.Values.registry2.service.port | default 5000) -}}
-  {{- else -}}
-    {{- .Values.config.registry.url -}}
-  {{- end -}}
+{{- if and .Values.registry.enabled (not .Values.config.registry.url) -}}
+{{- printf "%s:%v" (include "openrun.registryHostname" .) (.Values.registry.service.port | default 5000) -}}
+{{- else -}}
+{{- .Values.config.registry.url -}}
+{{- end -}}
 {{- end -}}
 
 {{- define "openrun.postgresHostname" -}}
-  {{- printf "%s.%s.svc.cluster.local" (include "openrun.postgresClusterName" .) .Release.Namespace -}}
+{{- printf "%s.%s.svc.cluster.local" (include "openrun.postgresClusterName" .) .Release.Namespace -}}
 {{- end -}}
 
 {{- define "openrun.databaseSettings" -}}

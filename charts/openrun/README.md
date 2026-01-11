@@ -3,7 +3,7 @@
 This Helm chart installs [OpenRun](https://openrun.dev) together with the dependencies that are required for a Kubernetes deployment:
 
 - **Postgres** metadata database. A single-instance StatefulSet is deployed when `postgres.enabled=true` (default). You can point the chart to an external Postgres instance instead.
-- **Container registry**. A single `registry:2` instance is deployed when `registry2.enabled=true` (default). Set `registry2.enabled=false` and provide your own registry configuration via `config.registry.*` if you already run a registry.
+- **Container registry**. A single `registry:2` instance is deployed when `registry.enabled=true` (default). Set `registry.enabled=false` and provide your own registry configuration via `config.registry.*` if you already run a registry.
 - A `LoadBalancer` service that exposes the OpenRun HTTP API.
 - RBAC that allows OpenRun to create Deployments and Services for the applications it manages.
 
@@ -24,12 +24,12 @@ kubectl get svc openrun -n openrun
 
 ## Configuring the registry
 
-OpenRun builds images with Kaniko and pushes them to the registry that is configured inside `openrun.toml`. The bundled registry2 Deployment is meant for local demos or proof-of-concept installs; for production environments use an external registry service (ECR, GCR, ACR, etc.) or keep using your existing Harbor deployment.
+OpenRun builds images with Kaniko and pushes them to the registry that is configured inside `openrun.toml`. The bundled registry Deployment is meant for local demos or proof-of-concept installs; for production environments use an external registry service (ECR, GCR, ACR, etc.) or keep using your existing Harbor deployment.
 
-- To use the bundled registry leave `registry2.enabled=true`. The service is reachable at `<release>-registry.<namespace>.svc.cluster.local:5000`. HTTP authentication is disabled by default, but you can feed a pre-generated htpasswd entry to require credentials:
+- To use the bundled registry leave `registry.enabled=true`. The service is reachable at `<release>-registry.<namespace>.svc.cluster.local:5000`. HTTP authentication is disabled by default, but you can feed a pre-generated htpasswd entry to require credentials:
 
   ```yaml
-  registry2:
+  registry:
     enabled: true
     auth:
       enabled: true
@@ -39,12 +39,12 @@ OpenRun builds images with Kaniko and pushes them to the registry that is config
       htpasswd: "openrun:$2y$05$example..."
   ```
 
-  When `registry2.auth.enabled=true` the same `username` / `password` defaults are mirrored into `config.registry.*`.
+  When `registry.auth.enabled=true` the same `username` / `password` defaults are mirrored into `config.registry.*`.
 
 - To use an external registry, disable the in-cluster registry and set the desired registry parameters:
 
   ```yaml
-  registry2:
+  registry:
     enabled: false
 
   config:
@@ -55,7 +55,6 @@ OpenRun builds images with Kaniko and pushes them to the registry that is config
       password: "<token>"
       insecure: false
   ```
-
 
 The rendered `openrun.toml` is stored in a secret named `{{ include "openrun.configSecretName" . }}` and mounted at `/var/lib/openrun/openrun.toml`.
 
@@ -92,13 +91,13 @@ A dedicated service account is created by default. The chart installs either a `
 
 ## Useful values
 
-| Key                               | Description                                                 | Default           |
-| --------------------------------- | ----------------------------------------------------------- | ----------------- |
-| `service.type`                    | Service type used to expose the OpenRun API                 | `LoadBalancer`    |
-| `config.registry.*`               | Registry configuration mirrored into `openrun.toml`         | see `values.yaml` |
-| `postgres.enabled`                | Deploy the bundled Postgres StatefulSet                     | `true`            |
-| `externalDatabase.*`              | Connection info for an existing Postgres instance           | disabled          |
-| `registry2.enabled`               | Deploy the in-cluster `registry:2` instance                 | `true`            |
-| `rbac.clusterWide`                | Use a ClusterRole so OpenRun can manage multiple namespaces | `true`            |
+| Key                  | Description                                                 | Default           |
+| -------------------- | ----------------------------------------------------------- | ----------------- |
+| `service.type`       | Service type used to expose the OpenRun API                 | `LoadBalancer`    |
+| `config.registry.*`  | Registry configuration mirrored into `openrun.toml`         | see `values.yaml` |
+| `postgres.enabled`   | Deploy the bundled Postgres StatefulSet                     | `true`            |
+| `externalDatabase.*` | Connection info for an existing Postgres instance           | disabled          |
+| `registry.enabled`   | Deploy the in-cluster `registry:2` instance                 | `true`            |
+| `rbac.clusterWide`   | Use a ClusterRole so OpenRun can manage multiple namespaces | `true`            |
 
 Refer to `values.yaml` for the full list of tunables.

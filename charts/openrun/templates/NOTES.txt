@@ -16,9 +16,9 @@ Thank you for installing OpenRun.
 {{- end }}
 
 3. Registry:
-{{- if .Values.registry2.enabled }}
-   - Service: {{ include "openrun.registryHostname" . }}:{{ .Values.registry2.service.port }}
-   - Authentication: {{- if .Values.registry2.auth.enabled }}enabled{{- if .Values.registry2.auth.username }} (user: {{ .Values.registry2.auth.username }}){{- end }}{{- else }}disabled{{- end }}
+{{- if .Values.registry.enabled }}
+   - Service: {{ include "openrun.registryHostname" . }}:{{ .Values.registry.service.port }}
+   - Authentication: {{- if .Values.registry.auth.enabled }}enabled{{- if .Values.registry.auth.username }} (user: {{ .Values.registry.auth.username }}){{- end }}{{- else }}disabled{{- end }}
 {{- else }}
    - External registry endpoint: {{ .Values.config.registry.url }}
    - User: {{ .Values.config.registry.username }}
