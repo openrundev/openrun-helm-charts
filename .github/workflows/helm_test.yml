@@ -45,4 +45,4 @@ jobs:
         uses: helm/kind-action@v1.4.0
 
       - name: Run chart-testing (install)
-        run: ct install --all --helm-extra-set-args  '--set=config.registry.url=localhost:5000'
+        run: ct install --all --helm-extra-set-args  '--set=config.registry.url=localhost:5000 --timeout 3m' --debug
