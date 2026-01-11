@@ -57,11 +57,7 @@ spec:
             - name: config
               mountPath: {{ $configFile }}
               subPath: openrun.toml
-            - name: openrun-home
-              mountPath: {{ .Values.openrunHome.mountPath }}
       volumes:
         - name: config
           secret:
             secretName: {{ include "openrun.configSecretName" . }}
-        - name: openrun-home
-          emptyDir: {}

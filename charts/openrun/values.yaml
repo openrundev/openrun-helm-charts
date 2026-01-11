@@ -34,9 +34,6 @@ readinessProbe:
   timeoutSeconds: 3
   failureThreshold: 6
 
-openrunHome:
-  mountPath: /var/lib/openrun
-
 config:
   adminUser: admin
   serverUri: ""
