@@ -43,7 +43,7 @@ jobs:
           git checkout gh-pages
           git reset --hard origin/gh-pages
 
-          git show origin/main:README.md > README.md
+          git show origin/main:charts/openrun/README.md > README.md
           git add README.md
           git commit -m "Update README landing page" || true
           git push origin gh-pages
