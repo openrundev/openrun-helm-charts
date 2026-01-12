@@ -45,4 +45,11 @@ jobs:
         uses: helm/kind-action@v1.4.0
 
       - name: Run chart-testing (install)
-        run: ct install --all --helm-extra-set-args  '--set=config.registry.url=localhost:5000 --timeout 3m' --debug
+        run: ct install --all --namespace ct-openrun --release-name openrun-ci --helm-extra-set-args  '--set=config.registry.url=localhost:5000 --timeout 3m' --debug --helm-extra-set-args "--set service.type=ClusterIP" --skip-clean-up
+      - name: Dump cluster state (on failure)
+        if: failure()
+        run: |
+          kubectl get all -n ct-openrun
+          kubectl get events -n ct-openrun --sort-by=.lastTimestamp | tail -n 200
+          kubectl describe pods -n ct-openrun
+          kubectl logs -n ct-openrun -l app.kubernetes.io/instance=openrun-ci --all-containers=true --tail=200
