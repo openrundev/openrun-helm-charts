@@ -45,7 +45,7 @@ jobs:
         uses: helm/kind-action@v1.4.0
 
       - name: Run chart-testing (install)
-        run: ct install --all --namespace ct-openrun --release-name openrun-ci --helm-extra-set-args  '--set=config.registry.url=localhost:5000 --timeout 3m' --debug --helm-extra-set-args "--set service.type=ClusterIP" --skip-clean-up
+        run: ct install --all --namespace ct-openrun --helm-extra-set-args  '--set=config.registry.url=localhost:5000 --timeout 3m' --debug --helm-extra-set-args "--set service.type=ClusterIP" --skip-clean-up
       - name: Dump cluster state (on failure)
         if: failure()
         run: |
