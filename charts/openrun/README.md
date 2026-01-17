@@ -23,7 +23,7 @@ helm install openrun1 openrun/openrun \
   --namespace openrun --create-namespace --set config.registry.url=<registry_url>
 ```
 
-By default the a bundled Postgres StatefulSet is used. It is recommended to use an exteranl managed Postgres. Once all pods become ready you can retrieve the external address of the OpenRun API with:
+By default a bundled Postgres StatefulSet is used. It is recommended to use an exteranl managed Postgres. Once all pods become ready you can retrieve the external address of the OpenRun API with:
 
 ```bash
 kubectl get svc openrun -n openrun
@@ -33,7 +33,7 @@ kubectl get svc openrun -n openrun
 
 OpenRun builds images with Kaniko and pushes them to the registry that is configured inside `openrun.toml`. The bundled registry Deployment is meant for local demos or proof-of-concept installs; for production environments use an external registry service (ECR, GCR, ACR, etc.) or use an existing Harbor deployment.
 
-- To use the bundled registry leave `registry.enabled=true`. The service is reachable at `<release>-registry.<namespace>.svc.cluster.local:5000`. HTTP authentication is disabled by default, but you can feed a pre-generated htpasswd entry to require credentials:
+- To use the bundled registry set `registry.enabled=true`. The service is reachable at `<release>-registry.<namespace>.svc.cluster.local:5000`. HTTP authentication is disabled by default, but you can feed a pre-generated htpasswd entry to require credentials:
 
   ```yaml
   registry:
@@ -99,6 +99,6 @@ A dedicated service account is created by default. The chart installs either a `
 | `config.registry.*`  | Registry configuration mirrored into `openrun.toml` | see `values.yaml` |
 | `postgres.enabled`   | Deploy the bundled Postgres StatefulSet             | `true`            |
 | `externalDatabase.*` | Connection info for an existing Postgres instance   | disabled          |
-| `registry.enabled`   | Deploy the in-cluster `registry:2` instance         | `true`            |
+| `registry.enabled`   | Deploy the in-cluster `registry:2` instance         | `false`           |
 
 Refer to `values.yaml` for the full list of tunables.
