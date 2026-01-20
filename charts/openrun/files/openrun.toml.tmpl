@@ -2,6 +2,7 @@
 {{- if and (not .Values.registry.enabled) (not .Values.config.registry.url) }}
 {{- fail "config.registry.url must be provided when registry.enabled is false" }}
 {{- end }}
+{{- $adminCreds := include "openrun.adminCredentials" . | fromYaml }}
 {{- if .Values.config.serverUri }}
 server_uri = "{{ .Values.config.serverUri }}"
 {{- end }}
@@ -31,7 +32,7 @@ admin_over_tcp = false
 {{- with .Values.config.security.appDefaultAuthType }}
 app_default_auth_type = "{{ . }}"
 {{- end }}
-{{- with .Values.config.security.adminPasswordBcrypt }}
+{{- with $adminCreds.bcrypt }}
 admin_password_bcrypt = "{{ . }}"
 {{- end }}
 {{- with .Values.config.security.sessionSecret }}
