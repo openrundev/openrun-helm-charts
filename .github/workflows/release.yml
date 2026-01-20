@@ -36,14 +36,3 @@ jobs:
         uses: helm/chart-releaser-action@v1.7.0
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-
-      - name: Update gh-pages README for landing page
-        run: |
-          git fetch origin main gh-pages
-          git checkout gh-pages
-          git reset --hard origin/gh-pages
-
-          git show origin/main:charts/openrun/README.md > README.md
-          git add README.md
-          git commit -m "Update README landing page" || true
-          git push origin gh-pages
