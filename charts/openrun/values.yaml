@@ -58,6 +58,9 @@ config:
     sessionBlockKey: ""
     appDefaultAuthType: ""
     defaultSecretsProvider: ""
+    # Callback URL for OAuth and SAML authentication flows.
+    # Example: "https://openrun.example.com:25223"
+    callbackUrl: ""
   system:
     defaultDomain: ""
   registry:
