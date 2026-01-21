@@ -85,3 +85,14 @@ username = "{{ $registryUsername }}"
 {{- if $registryPassword }}
 password = "{{ $registryPassword }}"
 {{- end }}
+
+{{- range $name, $auth := .Values.gitAuth }}
+[git_auth.{{ $name }}]
+user_id = "{{ $auth.userId }}"
+{{- if $auth.keyFilePath }}
+key_file_path = "{{ $auth.keyFilePath }}"
+{{- end }}
+{{- if $auth.password }}
+password = "{{ $auth.password }}"
+{{- end }}
+{{- end }}

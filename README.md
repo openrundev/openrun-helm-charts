@@ -104,6 +104,25 @@ The chart fails to render if neither `postgres.enabled` nor `externalDatabase.en
 
 A dedicated service account is created by default. The chart installs either a `ClusterRole` or namespace-scoped `Role` (switch via `rbac.clusterWide`). The role grants the verbs required for OpenRun to lazily create Deployments, Services, ConfigMaps, Secrets, Jobs, PVCs and related resources on behalf of applications.
 
+## Git Authentication
+
+OpenRun can authenticate to private Git repositories using SSH keys or personal access tokens. Multiple authentication accounts can be configured via the `gitAuth` values:
+
+```yaml
+gitAuth:
+  # GitLab using personal access token
+  gitlab_pat:
+    userId: "myuser"
+    password: "glpat-xxxxxxxxxxxx"
+
+  # GitHub using SSH key
+  github_ssh:
+    userId: "git"
+    keyFilePath: "/path/to/ssh/private_key"
+```
+
+Each entry generates a `[git_auth.<name>]` section in `openrun.toml`. Provide either `keyFilePath` (for SSH key authentication) or `password` (for HTTPS/token authentication), but not both.
+
 ## Useful values
 
 | Key                  | Description                                         | Default           |
@@ -112,5 +131,6 @@ A dedicated service account is created by default. The chart installs either a `
 | `postgres.enabled`   | Deploy the bundled Postgres StatefulSet             | `true`            |
 | `externalDatabase.*` | Connection info for an existing Postgres instance   | disabled          |
 | `registry.enabled`   | Deploy the in-cluster `registry:2` instance         | `false`           |
+| `gitAuth`            | Git authentication accounts for private repos       | `{}`              |
 
 Refer to `values.yaml` for the full list of tunables.

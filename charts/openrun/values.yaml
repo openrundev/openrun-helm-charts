@@ -145,6 +145,21 @@ externalDatabase:
 openrunConfigSecret:
   name: ""
 
+# Git authentication for private repositories.
+# Multiple auth accounts can be configured. Each entry requires:
+#   - user_id: The username/user ID for authentication
+#   - keyFilePath: Path to SSH key file (use either this or password)
+#   - password: Personal access token or password (use either this or keyFilePath)
+# Example:
+#   gitAuth:
+#     gitlab_pat:
+#       userId: "myuser"
+#       password: "glpat-xxxxxxxxxxxx"
+#     github_ssh:
+#       userId: "git"
+#       keyFilePath: "/path/to/ssh/key"
+gitAuth: {}
+
 registry:
   # The in-cluster registry is for basic setups. Production installs should
   # use an external registry service or an existing Harbor deployment.
