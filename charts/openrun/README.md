@@ -111,6 +111,76 @@ gitAuth:
 
 Each entry generates a `[git_auth.<name>]` section in `openrun.toml`. Provide either `keyFilePath` (for SSH key authentication) or `password` (for HTTPS/token authentication), but not both.
 
+## App Authentication (OAuth/OIDC)
+
+OpenRun supports OAuth and OIDC authentication providers for applications. Multiple providers can be configured via the `auth` values:
+
+```yaml
+auth:
+  # Google OAuth with hosted domain restriction
+  google_openrun:
+    key: "xxxxx.apps.googleusercontent.com"
+    secret: "GOCSPX-xxxxx"
+    hostedDomain: "openrun.dev"
+
+  # GitHub OAuth
+  github_local:
+    key: "Ov23xxxxx"
+    secret: "5dc28xxxxx"
+
+  # Generic OIDC (e.g., Okta)
+  oidc_okta:
+    key: "0oavknst5tchw8unl697"
+    secret: "nBTsFRY9BUZ5aAQsbmHt"
+    discoveryUrl: "https://example.okta.com/.well-known/openid-configuration"
+    scopes: ["openid", "profile", "email", "groups"]
+
+  # Auth0
+  auth0_prod:
+    key: "client-id"
+    secret: "client-secret"
+    domain: "myapp.auth0.com"
+```
+
+Each entry generates an `[auth.<name>]` section in `openrun.toml`. All keys are optional:
+
+| Key            | Description                        | Used by        |
+| -------------- | ---------------------------------- | -------------- |
+| `key`          | OAuth client ID                    | All providers  |
+| `secret`       | OAuth client secret                | All providers  |
+| `hostedDomain` | Restrict to hosted domain          | Google         |
+| `domain`       | Auth0 domain                       | Auth0          |
+| `orgUrl`       | Organization URL                   | Okta           |
+| `discoveryUrl` | OIDC discovery endpoint            | Generic OIDC   |
+| `scopes`       | List of OAuth scopes to request    | All providers  |
+
+## SAML Authentication
+
+OpenRun supports SAML authentication providers. Multiple providers can be configured via the `saml` values:
+
+```yaml
+saml:
+  # Okta SAML
+  okta_test:
+    metadataUrl: "https://example.okta.com/app/xxxxx/sso/saml/metadata"
+    forceAuthn: false
+
+  # Azure AD SAML
+  azure_ad:
+    metadataUrl: "https://login.microsoftonline.com/xxxxx/federationmetadata/2007-06/federationmetadata.xml"
+    groupsAttr: "groups"
+    usePost: true
+```
+
+Each entry generates a `[saml.<name>]` section in `openrun.toml`. All keys are optional:
+
+| Key           | Description                          |
+| ------------- | ------------------------------------ |
+| `metadataUrl` | SAML metadata URL                    |
+| `groupsAttr`  | Attribute name for group membership  |
+| `usePost`     | Use POST binding (default: false)    |
+| `forceAuthn`  | Force re-authentication (default: false) |
+
 ## Useful values
 
 | Key                  | Description                                         | Default           |
@@ -120,5 +190,7 @@ Each entry generates a `[git_auth.<name>]` section in `openrun.toml`. Provide ei
 | `externalDatabase.*` | Connection info for an existing Postgres instance   | disabled          |
 | `registry.enabled`   | Deploy the in-cluster `registry:2` instance         | `false`           |
 | `gitAuth`            | Git authentication accounts for private repos       | `{}`              |
+| `auth`               | OAuth/OIDC providers for app authentication         | `{}`              |
+| `saml`               | SAML providers for app authentication               | `{}`              |
 
 Refer to `values.yaml` for the full list of tunables.

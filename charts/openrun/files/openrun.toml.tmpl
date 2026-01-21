@@ -96,3 +96,44 @@ key_file_path = "{{ $auth.keyFilePath }}"
 password = "{{ $auth.password }}"
 {{- end }}
 {{- end }}
+
+{{- range $name, $provider := .Values.auth }}
+[auth.{{ $name }}]
+{{- if $provider.key }}
+key = "{{ $provider.key }}"
+{{- end }}
+{{- if $provider.secret }}
+secret = "{{ $provider.secret }}"
+{{- end }}
+{{- if $provider.orgUrl }}
+org_url = "{{ $provider.orgUrl }}"
+{{- end }}
+{{- if $provider.domain }}
+domain = "{{ $provider.domain }}"
+{{- end }}
+{{- if $provider.discoveryUrl }}
+discovery_url = "{{ $provider.discoveryUrl }}"
+{{- end }}
+{{- if $provider.hostedDomain }}
+hosted_domain = "{{ $provider.hostedDomain }}"
+{{- end }}
+{{- if $provider.scopes }}
+scopes = {{ $provider.scopes | toJson }}
+{{- end }}
+{{- end }}
+
+{{- range $name, $provider := .Values.saml }}
+[saml.{{ $name }}]
+{{- if $provider.metadataUrl }}
+metadata_url = "{{ $provider.metadataUrl }}"
+{{- end }}
+{{- if $provider.groupsAttr }}
+groups_attr = "{{ $provider.groupsAttr }}"
+{{- end }}
+{{- if $provider.usePost }}
+use_post = {{ $provider.usePost }}
+{{- end }}
+{{- if $provider.forceAuthn }}
+force_authn = {{ $provider.forceAuthn }}
+{{- end }}
+{{- end }}

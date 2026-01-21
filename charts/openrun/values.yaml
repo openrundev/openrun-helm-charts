@@ -160,6 +160,50 @@ openrunConfigSecret:
 #       keyFilePath: "/path/to/ssh/key"
 gitAuth: {}
 
+# OAuth/OIDC authentication providers for applications.
+# Multiple auth providers can be configured. All keys are optional.
+# Supported keys:
+#   - key: OAuth client ID
+#   - secret: OAuth client secret
+#   - orgUrl: Organization URL (for Okta)
+#   - domain: Domain (for Auth0)
+#   - discoveryUrl: OIDC discovery URL
+#   - hostedDomain: Hosted domain (for Google)
+#   - scopes: List of OAuth scopes
+# Example:
+#   auth:
+#     google_openrun:
+#       key: "xxxxx.apps.googleusercontent.com"
+#       secret: "GOCSPX-xxxxx"
+#       hostedDomain: "openrun.dev"
+#     github_local:
+#       key: "Ov23xxxxx"
+#       secret: "5dc28xxxxx"
+#     oidc_okta:
+#       key: "0oavknst5tchw8unl697"
+#       secret: "nBTsFRY9BUZ5aAQsbmHt"
+#       discoveryUrl: "https://example.okta.com/.well-known/openid-configuration"
+#       scopes: ["openid", "profile", "email", "groups"]
+auth: {}
+
+# SAML authentication providers for applications.
+# Multiple SAML providers can be configured. All keys are optional.
+# Supported keys:
+#   - metadataUrl: SAML metadata URL
+#   - groupsAttr: Groups attribute name
+#   - usePost: Use POST binding (default: false)
+#   - forceAuthn: Force authentication (default: false)
+# Example:
+#   saml:
+#     okta_test:
+#       metadataUrl: "https://example.okta.com/app/xxxxx/sso/saml/metadata"
+#       forceAuthn: false
+#     azure_ad:
+#       metadataUrl: "https://login.microsoftonline.com/xxxxx/federationmetadata/2007-06/federationmetadata.xml"
+#       groupsAttr: "groups"
+#       usePost: true
+saml: {}
+
 registry:
   # The in-cluster registry is for basic setups. Production installs should
   # use an external registry service or an existing Harbor deployment.
