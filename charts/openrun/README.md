@@ -29,6 +29,17 @@ By default a bundled Postgres StatefulSet is used. It is recommended to use an e
 kubectl get svc openrun -n openrun
 ```
 
+## Admin credentials
+
+By default the chart generates a random admin password on install and prints it once in the Helm notes. To provide your own password, set `config.security.adminPassword`. To use a pre-generated bcrypt hash instead, set `config.security.adminPasswordBcrypt` (it takes precedence over `adminPassword`).
+
+```yaml
+config:
+  security:
+    adminPassword: "change-me"
+    # adminPasswordBcrypt: "$2y$05$example..."
+```
+
 ## Configuring the registry
 
 OpenRun builds images with Kaniko and pushes them to the registry that is configured inside `openrun.toml`. The bundled registry Deployment is meant for local demos or proof-of-concept installs; for production environments use an external registry service (ECR, GCR, ACR, etc.) or use an existing Harbor deployment.

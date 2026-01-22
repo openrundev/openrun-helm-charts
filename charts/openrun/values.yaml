@@ -53,6 +53,7 @@ config:
     serviceEmail: ""
     useStaging: true
   security:
+    adminPassword: ""
     adminPasswordBcrypt: ""
     sessionSecret: ""
     sessionBlockKey: ""
