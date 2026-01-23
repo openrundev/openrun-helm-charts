@@ -33,9 +33,16 @@ spec:
               TIMEOUT=600
               ELAPSED=0
               INTERVAL=2
+              AUDIT_DB="${POSTGRES_AUDIT_DB:-}"
+              AUDIT_DB_ESCAPED=""
+              if [ -n "$AUDIT_DB" ]; then
+                AUDIT_DB_ESCAPED=$(printf "%s" "$AUDIT_DB" | sed "s/'/''/g")
+              fi
               echo "Waiting for database to be ready (timeout: ${TIMEOUT}s)..."
               until PGPASSWORD="$POSTGRES_PASSWORD" psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" \
-                -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT 1" >/dev/null 2>&1; do
+                -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT 1" >/dev/null 2>&1 && \
+                { [ -z "$AUDIT_DB" ] || PGPASSWORD="$POSTGRES_PASSWORD" psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" \
+                  -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "SELECT 1 FROM pg_database WHERE datname='${AUDIT_DB_ESCAPED}'" | grep -q 1; }; do
                 if [ $ELAPSED -ge $TIMEOUT ]; then
                   echo "ERROR: Timed out after ${TIMEOUT}s waiting for database"
                   exit 1
@@ -88,6 +95,8 @@ spec:
               value: {{ required "externalDatabase.password is required" .Values.externalDatabase.password | quote }}
             {{- end }}
             {{- end }}
+            - name: POSTGRES_AUDIT_DB
+              value: {{ default "openrun_audit" .Values.config.metadata.auditDatabase | quote }}
       containers:
         - name: openrun
           {{- $tag := default .Chart.AppVersion .Values.image.tag }}
