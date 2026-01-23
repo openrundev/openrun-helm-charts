@@ -21,6 +21,73 @@ spec:
         checksum/openrun-config: {{ $config | sha256sum | quote }}
     spec:
       serviceAccountName: {{ include "openrun.serviceAccountName" . }}
+      initContainers:
+        - name: wait-for-db
+          image: "{{ .Values.postgres.image.repository }}:{{ .Values.postgres.image.tag }}"
+          imagePullPolicy: {{ .Values.postgres.image.pullPolicy }}
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -euo pipefail
+              TIMEOUT=600
+              ELAPSED=0
+              INTERVAL=2
+              echo "Waiting for database to be ready (timeout: ${TIMEOUT}s)..."
+              until PGPASSWORD="$POSTGRES_PASSWORD" psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" \
+                -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT 1" >/dev/null 2>&1; do
+                if [ $ELAPSED -ge $TIMEOUT ]; then
+                  echo "ERROR: Timed out after ${TIMEOUT}s waiting for database"
+                  exit 1
+                fi
+                echo "Database not ready, waiting... (${ELAPSED}s elapsed)"
+                sleep $INTERVAL
+                ELAPSED=$((ELAPSED + INTERVAL))
+              done
+              echo "Database is ready after ${ELAPSED}s"
+          env:
+            {{- if .Values.postgres.enabled }}
+            - name: POSTGRES_HOST
+              value: {{ include "openrun.postgresClusterName" . }}
+            - name: POSTGRES_PORT
+              value: {{ .Values.postgres.service.port | quote }}
+            - name: POSTGRES_DB
+              value: {{ .Values.postgres.database | quote }}
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "openrun.postgresAppSecretName" . }}
+                  key: {{ .Values.postgres.appUser.usernameKey }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "openrun.postgresAppSecretName" . }}
+                  key: {{ .Values.postgres.appUser.passwordKey }}
+            {{- else if .Values.externalDatabase.enabled }}
+            - name: POSTGRES_HOST
+              value: {{ required "externalDatabase.host is required" .Values.externalDatabase.host | quote }}
+            - name: POSTGRES_PORT
+              value: {{ .Values.externalDatabase.port | default 5432 | quote }}
+            - name: POSTGRES_DB
+              value: {{ required "externalDatabase.database is required" .Values.externalDatabase.database | quote }}
+            {{- if .Values.externalDatabase.existingSecretName }}
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.externalDatabase.existingSecretName }}
+                  key: {{ .Values.externalDatabase.usernameKey | default "username" }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.externalDatabase.existingSecretName }}
+                  key: {{ .Values.externalDatabase.passwordKey | default "password" }}
+            {{- else }}
+            - name: POSTGRES_USER
+              value: {{ required "externalDatabase.username is required" .Values.externalDatabase.username | quote }}
+            - name: POSTGRES_PASSWORD
+              value: {{ required "externalDatabase.password is required" .Values.externalDatabase.password | quote }}
+            {{- end }}
+            {{- end }}
       containers:
         - name: openrun
           {{- $tag := default .Chart.AppVersion .Values.image.tag }}
