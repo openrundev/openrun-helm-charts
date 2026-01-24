@@ -1,0 +1,186 @@
+{{- if or .Values.postgres.enabled .Values.externalDatabase.enabled }}
+{{- $clusterName := include "openrun.postgresClusterName" . -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "openrun.fullname" . }}-db-init
+  labels:
+    {{- include "openrun.labels" . | nindent 4 }}
+    app.kubernetes.io/component: db-init
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade2
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  backoffLimit: 10
+  ttlSecondsAfterFinished: 300
+  template:
+    metadata:
+      labels:
+        {{- include "openrun.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: db-init
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: db-init
+          image: "{{ .Values.postgres.image.repository }}:{{ .Values.postgres.image.tag }}"
+          imagePullPolicy: {{ .Values.postgres.image.pullPolicy }}
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -euo pipefail
+
+              echo "Waiting for PostgreSQL to accept connections..."
+              until pg_isready -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER"; do
+                echo "PostgreSQL not ready, waiting..."
+                sleep 2
+              done
+              echo "PostgreSQL is accepting connections"
+
+              escape_literal() {
+                printf "%s" "$1" | sed "s/'/''/g"
+              }
+
+              APP_DB="${POSTGRES_APP_DATABASE:-${POSTGRES_DB:-postgres}}"
+              DATABASES=()
+              add_database() {
+                local db="$1"
+                if [[ -z "$db" ]]; then
+                  return
+                fi
+                for existing in "${DATABASES[@]:-}"; do
+                  if [[ "$existing" == "$db" ]]; then
+                    return
+                  fi
+                done
+                DATABASES+=("$db")
+              }
+
+              add_database "$APP_DB"
+              for extra in ${POSTGRES_EXTRA_DATABASES:-}; do
+                add_database "$extra"
+              done
+
+              APP_USER_ESCAPED="$(escape_literal "$POSTGRES_APP_USER")"
+              APP_PASSWORD_ESCAPED="$(escape_literal "$POSTGRES_APP_PASSWORD")"
+
+              ROLE_SQL="DO
+              \$\$
+              BEGIN
+                IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '${APP_USER_ESCAPED}') THEN
+                  EXECUTE format('CREATE ROLE %I LOGIN PASSWORD %L', '${APP_USER_ESCAPED}', '${APP_PASSWORD_ESCAPED}');
+                ELSE
+                  EXECUTE format('ALTER ROLE %I WITH PASSWORD %L', '${APP_USER_ESCAPED}', '${APP_PASSWORD_ESCAPED}');
+                END IF;
+              END
+              \$\$;"
+
+              run_psql() {
+                local sql="$1"
+                local dbname="${2:-${POSTGRES_DB:-postgres}}"
+                PGPASSWORD="${POSTGRES_PASSWORD:-}" psql -v ON_ERROR_STOP=1 \
+                  --host "$POSTGRES_HOST" \
+                  --username "$POSTGRES_USER" \
+                  --dbname "$dbname" \
+                  -c "$sql"
+              }
+
+              ensure_database() {
+                local db="$1"
+                local escaped
+                escaped="$(escape_literal "$db")"
+                local exists
+                exists=$(PGPASSWORD="${POSTGRES_PASSWORD:-}" psql --host "$POSTGRES_HOST" --username "$POSTGRES_USER" --dbname postgres \
+                  -Atqc "SELECT 1 FROM pg_database WHERE datname='${escaped}'" || true)
+                if [[ -z "$exists" ]]; then
+                  echo "Creating database: $db"
+                  PGPASSWORD="${POSTGRES_PASSWORD:-}" createdb -h "$POSTGRES_HOST" -U "$POSTGRES_USER" -O "$POSTGRES_APP_USER" "$db"
+                else
+                  echo "Database already exists: $db"
+                fi
+                run_psql "ALTER DATABASE \"${db}\" OWNER TO \"${POSTGRES_APP_USER}\"" postgres
+                run_psql "GRANT ALL PRIVILEGES ON DATABASE \"${db}\" TO \"${POSTGRES_APP_USER}\"" postgres
+              }
+
+              echo "Ensuring app user exists..."
+              run_psql "$ROLE_SQL" "${POSTGRES_DB:-postgres}"
+
+              echo "Ensuring databases exist..."
+              for db in "${DATABASES[@]}"; do
+                ensure_database "$db"
+              done
+
+              echo "Database initialization complete"
+          env:
+            {{- if .Values.postgres.enabled }}
+            - name: POSTGRES_HOST
+              value: {{ $clusterName }}
+            - name: POSTGRES_PORT
+              value: {{ .Values.postgres.service.port | quote }}
+            - name: POSTGRES_DB
+              value: "postgres"
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "openrun.postgresSuperuserSecretName" . }}
+                  key: {{ .Values.postgres.superuser.usernameKey }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "openrun.postgresSuperuserSecretName" . }}
+                  key: {{ .Values.postgres.superuser.passwordKey }}
+            - name: POSTGRES_APP_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "openrun.postgresAppSecretName" . }}
+                  key: {{ .Values.postgres.appUser.usernameKey }}
+            - name: POSTGRES_APP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "openrun.postgresAppSecretName" . }}
+                  key: {{ .Values.postgres.appUser.passwordKey }}
+            {{- else if .Values.externalDatabase.enabled }}
+            - name: POSTGRES_HOST
+              value: {{ required "externalDatabase.host is required" .Values.externalDatabase.host | quote }}
+            - name: POSTGRES_PORT
+              value: {{ .Values.externalDatabase.port | default 5432 | quote }}
+            - name: POSTGRES_DB
+              value: "postgres"
+            {{- if .Values.externalDatabase.existingSecretName }}
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.externalDatabase.existingSecretName }}
+                  key: {{ .Values.externalDatabase.usernameKey | default "username" }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.externalDatabase.existingSecretName }}
+                  key: {{ .Values.externalDatabase.passwordKey | default "password" }}
+            - name: POSTGRES_APP_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.externalDatabase.existingSecretName }}
+                  key: {{ .Values.externalDatabase.usernameKey | default "username" }}
+            - name: POSTGRES_APP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.externalDatabase.existingSecretName }}
+                  key: {{ .Values.externalDatabase.passwordKey | default "password" }}
+            {{- else }}
+            - name: POSTGRES_USER
+              value: {{ required "externalDatabase.username is required" .Values.externalDatabase.username | quote }}
+            - name: POSTGRES_PASSWORD
+              value: {{ required "externalDatabase.password is required" .Values.externalDatabase.password | quote }}
+            - name: POSTGRES_APP_USER
+              value: {{ required "externalDatabase.username is required" .Values.externalDatabase.username | quote }}
+            - name: POSTGRES_APP_PASSWORD
+              value: {{ required "externalDatabase.password is required" .Values.externalDatabase.password | quote }}
+            {{- end }}
+            {{- end }}
+            - name: POSTGRES_APP_DATABASE
+              value: {{ default "openrun" .Values.config.metadata.database | quote }}
+            - name: POSTGRES_EXTRA_DATABASES
+              value: {{ include "openrun.postgresExtraDatabases" . | quote }}
+{{- end }}
