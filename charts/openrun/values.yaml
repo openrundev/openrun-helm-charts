@@ -44,12 +44,12 @@ config:
     access_logging: true
   http:
     host: 0.0.0.0
-    port: 25222
+    port: 80
     redirectToHttps: false
   https:
     enabled: true
     host: 0.0.0.0
-    port: 25223
+    port: 443
     serviceEmail: ""
     useStaging: true
   security:
@@ -60,7 +60,7 @@ config:
     appDefaultAuthType: ""
     defaultSecretsProvider: ""
     # Callback URL for OAuth and SAML authentication flows.
-    # Example: "https://openrun.example.com:25223"
+    # Example: "https://openrun.example.com"
     callbackUrl: ""
   system:
     defaultDomain: ""
