@@ -8,10 +8,6 @@ metadata:
   labels:
     {{- include "openrun.labels" . | nindent 4 }}
     app.kubernetes.io/component: db-init
-  annotations:
-    "helm.sh/hook": post-install,post-upgrade
-    "helm.sh/hook-weight": "5"
-    "helm.sh/hook-delete-policy": hook-succeeded
 spec:
   backoffLimit: 10
   ttlSecondsAfterFinished: 300
@@ -32,6 +28,13 @@ spec:
             - -c
             - |
               set -euo pipefail
+
+              if ! command -v curl >/dev/null 2>&1; then
+                echo "curl not found; installing..."
+                apt-get update -y
+                apt-get install -y curl
+                rm -rf /var/lib/apt/lists/*
+              fi
 
               echo "Waiting for PostgreSQL to accept connections..."
               until pg_isready -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER"; do
