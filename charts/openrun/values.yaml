@@ -146,6 +146,14 @@ externalDatabase:
   sslMode: disable
   parameters: ""
 
+dbInit:
+  waitForJob: true
+  waitTimeoutSeconds: 600
+  waitImage:
+    repository: curlimages/curl
+    tag: "8.6.0"
+    pullPolicy: IfNotPresent
+
 openrunConfigSecret:
   name: ""
 

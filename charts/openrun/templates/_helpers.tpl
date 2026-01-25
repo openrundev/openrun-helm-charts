@@ -120,6 +120,10 @@ app.kubernetes.io/component: registry
   {{- printf "%s.%s.svc.cluster.local" (include "openrun.registryServiceName" .) .Release.Namespace -}}
 {{- end -}}
 
+{{- define "openrun.dbInitMarkerName" -}}
+  {{- printf "%s-db-init-complete" (include "openrun.fullname" .) -}}
+{{- end -}}
+
 {{- define "openrun.postgresPrimaryDatabase" -}}
   {{- default "openrun" .Values.config.metadata.database -}}
 {{- end -}}

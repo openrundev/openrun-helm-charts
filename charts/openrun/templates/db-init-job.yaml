@@ -1,5 +1,6 @@
 {{- if or .Values.postgres.enabled .Values.externalDatabase.enabled }}
 {{- $clusterName := include "openrun.postgresClusterName" . -}}
+{{- $markerName := include "openrun.dbInitMarkerName" . -}}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -8,8 +9,8 @@ metadata:
     {{- include "openrun.labels" . | nindent 4 }}
     app.kubernetes.io/component: db-init
   annotations:
-    "helm.sh/hook": pre-install,pre-upgrade
-    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "5"
     "helm.sh/hook-delete-policy": hook-succeeded
 spec:
   backoffLimit: 10
@@ -21,6 +22,7 @@ spec:
         app.kubernetes.io/component: db-init
     spec:
       restartPolicy: OnFailure
+      serviceAccountName: {{ include "openrun.serviceAccountName" . }}
       containers:
         - name: db-init
           image: "{{ .Values.postgres.image.repository }}:{{ .Values.postgres.image.tag }}"
@@ -112,6 +114,27 @@ spec:
               done
 
               echo "Database initialization complete"
+
+              # Create completion marker ConfigMap
+              echo "Creating completion marker..."
+              NAMESPACE="$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)"
+              TOKEN="$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)"
+              CA="/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+              MARKER_NAME="{{ $markerName }}"
+              TIMESTAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+              API="https://kubernetes.default.svc/api/v1/namespaces/${NAMESPACE}/configmaps"
+
+              PAYLOAD="{\"apiVersion\":\"v1\",\"kind\":\"ConfigMap\",\"metadata\":{\"name\":\"${MARKER_NAME}\"},\"data\":{\"completedAt\":\"${TIMESTAMP}\"}}"
+
+              # Try to patch (update) first, create if it doesn't exist
+              if ! curl -fsS --cacert "$CA" -H "Authorization: Bearer $TOKEN" \
+                -H "Content-Type: application/strategic-merge-patch+json" \
+                -X PATCH --data "$PAYLOAD" "${API}/${MARKER_NAME}" >/dev/null 2>&1; then
+                curl -fsS --cacert "$CA" -H "Authorization: Bearer $TOKEN" \
+                  -H "Content-Type: application/json" \
+                  -X POST --data "$PAYLOAD" "$API" >/dev/null
+              fi
+              echo "Completion marker created"
           env:
             {{- if .Values.postgres.enabled }}
             - name: POSTGRES_HOST
