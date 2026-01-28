@@ -13,36 +13,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Set up Helm
-        uses: azure/setup-helm@v3
+        uses: azure/setup-helm@v4
         with:
-          version: v3.10.0
+          version: v3.14.0
 
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.9"
-          check-latest: true
+      - name: Install helm-unittest plugin
+        run: helm plugin install https://github.com/helm-unittest/helm-unittest --version v0.5.1
+
+      - name: Run verify
+        run: make verify
 
       - name: Set up chart-testing
-        uses: helm/chart-testing-action@v2.3.1
-
-      - name: Run chart-testing (list-changed)
-        id: list-changed
-        run: |
-          changed=$(ct list-changed --target-branch ${{ github.event.repository.default_branch }})
-          if [[ -n "$changed" ]]; then
-            echo "::set-output name=changed::true"
-          fi
-
-      - name: Run chart-testing (lint)
-        run: ct lint --target-branch ${{ github.event.repository.default_branch }}
+        uses: helm/chart-testing-action@v2.6.1
 
       - name: Create kind cluster
-        uses: helm/kind-action@v1.4.0
+        uses: helm/kind-action@v1.10.0
 
       - name: Run chart-testing (install)
-        run: ct install --all --helm-extra-set-args  '--set=config.registry.url=localhost:5000 --timeout 3m --set=service.type=ClusterIP --set=config.http.port=25222 --set=config.https.port=25223' --debug
+        run: ct install --all --helm-extra-set-args '--set=config.registry.url=localhost:5000 --timeout 3m --set=service.type=ClusterIP --set=config.http.port=25222 --set=config.https.port=25223' --debug
