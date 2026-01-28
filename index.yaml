@@ -2,6 +2,31 @@ apiVersion: v1
 entries:
   openrun:
   - apiVersion: v2
+    appVersion: 0.16.10
+    created: "2026-01-28T20:29:05.37379562Z"
+    description: OpenRun - App Deployment Simplified
+    digest: 3a33b536f9c0db3fb016a112f8553eace701bcad236b03ae8f3e4f89db2d07d3
+    home: https://openrun.dev/
+    icon: https://openrun.dev/openrun.svg
+    keywords:
+    - openrun
+    - declarative
+    - deployment
+    - apps
+    - internal-tools
+    - open-source
+    maintainers:
+    - email: contact@openrun.dev
+      name: openrun
+      url: https://openrun.dev/
+    name: openrun
+    sources:
+    - https://github.com/openrundev/openrun-helm-charts.git
+    type: application
+    urls:
+    - https://github.com/openrundev/openrun-helm-charts/releases/download/openrun-0.1.30/openrun-0.1.30.tgz
+    version: 0.1.30
+  - apiVersion: v2
     appVersion: 0.16.7
     created: "2026-01-27T05:48:34.778039772Z"
     description: OpenRun - App Deployment Simplified
@@ -626,4 +651,4 @@ entries:
     urls:
     - https://github.com/openrundev/openrun-helm-charts/releases/download/openrun-0.1.2/openrun-0.1.2.tgz
     version: 0.1.2
-generated: "2026-01-27T05:48:34.778250435Z"
+generated: "2026-01-28T20:29:05.37401425Z"
