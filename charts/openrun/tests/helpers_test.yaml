@@ -1,0 +1,48 @@
+# Tests for helper functions
+suite: Helper Functions Tests
+templates:
+  - config-secret.yaml
+tests:
+  - it: should set kubernetes as default secrets provider
+    set:
+      postgres.enabled: true
+      registry.enabled: true
+    asserts:
+      - matchRegex:
+          path: stringData["openrun.toml"]
+          pattern: '\[secret\.kubernetes\]'
+      - matchRegex:
+          path: stringData["openrun.toml"]
+          pattern: 'security\.default_secrets_provider = "kubernetes"'
+
+  - it: should use correct postgres hostname
+    set:
+      postgres.enabled: true
+      registry.enabled: true
+    asserts:
+      - matchRegex:
+          path: stringData["openrun.toml"]
+          pattern: '@.*-db\..*\.svc\.cluster\.local:5432/'
+
+  - it: should use custom cluster name in hostname
+    set:
+      postgres.enabled: true
+      postgres.clusterName: my-custom-db
+      registry.enabled: true
+    asserts:
+      - matchRegex:
+          path: stringData["openrun.toml"]
+          pattern: '@my-custom-db\..*\.svc\.cluster\.local:5432/'
+
+  - it: should use external database host
+    set:
+      postgres.enabled: false
+      externalDatabase.enabled: true
+      externalDatabase.host: prod-db.example.com
+      externalDatabase.port: 5433
+      externalDatabase.existingSecretName: my-secret
+      registry.enabled: true
+    asserts:
+      - matchRegex:
+          path: stringData["openrun.toml"]
+          pattern: '@prod-db\.example\.com:5433/'

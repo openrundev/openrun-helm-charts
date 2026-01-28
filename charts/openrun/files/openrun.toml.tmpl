@@ -49,10 +49,10 @@ callback_url = "{{ . }}"
 {{- end }}
 
 [metadata]
-{{- $metadataDb := include "openrun.databaseConnectionFor" (dict "context" . "database" (default "openrun" .Values.config.metadata.database)) }}
-{{- $auditDb := include "openrun.databaseConnectionFor" (dict "context" . "database" (default "openrun_audit" .Values.config.metadata.auditDatabase)) }}
-db_connection = "{{ $metadataDb }}"
-audit_db_connection = "{{ $auditDb }}"
+{{- $metadataDb := include "openrun.databaseConnectionWithSecrets" (dict "context" . "database" (default "openrun" .Values.config.metadata.database)) }}
+{{- $auditDb := include "openrun.databaseConnectionWithSecrets" (dict "context" . "database" (default "openrun_audit" .Values.config.metadata.auditDatabase)) }}
+db_connection = '{{ $metadataDb }}'
+audit_db_connection = '{{ $auditDb }}'
 
 [system]
 container_command = "kubernetes"
@@ -140,3 +140,8 @@ use_post = {{ $provider.usePost }}
 force_authn = {{ $provider.forceAuthn }}
 {{- end }}
 {{- end }}
+
+[secret.kubernetes]
+
+[app_config]
+security.default_secrets_provider = "kubernetes"

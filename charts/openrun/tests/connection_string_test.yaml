@@ -1,0 +1,130 @@
+# Tests for database connection string generation with secret references
+suite: Database Connection String Tests
+templates:
+  - config-secret.yaml
+tests:
+  - it: should use secret references for embedded postgres
+    set:
+      postgres.enabled: true
+      registry.enabled: true
+    asserts:
+      - isKind:
+          of: Secret
+      - matchRegex:
+          path: stringData["openrun.toml"]
+          pattern: 'db_connection = ''postgres://\{\{secret ".*" "username"\}\}:\{\{secret ".*" "password"\}\}@.*:5432/openrun\?sslmode=disable'''
+      - matchRegex:
+          path: stringData["openrun.toml"]
+          pattern: 'audit_db_connection = ''postgres://\{\{secret ".*" "username"\}\}:\{\{secret ".*" "password"\}\}@.*:5432/openrun_audit\?sslmode=disable'''
+
+  - it: should reference correct secret name for embedded postgres
+    set:
+      postgres.enabled: true
+      registry.enabled: true
+    asserts:
+      - matchRegex:
+          path: stringData["openrun.toml"]
+          pattern: 'secret ".*-db-app" "username"'
+      - matchRegex:
+          path: stringData["openrun.toml"]
+          pattern: 'secret ".*-db-app" "password"'
+
+  - it: should use custom secret keys for embedded postgres
+    set:
+      postgres.enabled: true
+      postgres.appUser.usernameKey: user
+      postgres.appUser.passwordKey: pass
+      registry.enabled: true
+    asserts:
+      - matchRegex:
+          path: stringData["openrun.toml"]
+          pattern: 'secret ".*-db-app" "user"'
+      - matchRegex:
+          path: stringData["openrun.toml"]
+          pattern: 'secret ".*-db-app" "pass"'
+
+  - it: should use existingSecretName for external database
+    set:
+      postgres.enabled: false
+      externalDatabase.enabled: true
+      externalDatabase.host: mydb.example.com
+      externalDatabase.existingSecretName: my-terraform-secret
+      externalDatabase.usernameKey: db_user
+      externalDatabase.passwordKey: db_pass
+      registry.enabled: true
+    asserts:
+      - matchRegex:
+          path: stringData["openrun.toml"]
+          pattern: 'secret "my-terraform-secret" "db_user"'
+      - matchRegex:
+          path: stringData["openrun.toml"]
+          pattern: 'secret "my-terraform-secret" "db_pass"'
+      - matchRegex:
+          path: stringData["openrun.toml"]
+          pattern: '@mydb.example.com:5432/'
+
+  - it: should create secret and reference it for external database with password in values
+    set:
+      postgres.enabled: false
+      externalDatabase.enabled: true
+      externalDatabase.host: mydb.example.com
+      externalDatabase.username: myuser
+      externalDatabase.password: mypassword
+      registry.enabled: true
+    asserts:
+      - matchRegex:
+          path: stringData["openrun.toml"]
+          pattern: 'secret ".*-external-db" "username"'
+      - matchRegex:
+          path: stringData["openrun.toml"]
+          pattern: 'secret ".*-external-db" "password"'
+
+  - it: should use custom database names
+    set:
+      postgres.enabled: true
+      config.metadata.database: customdb
+      config.metadata.auditDatabase: customaudit
+      registry.enabled: true
+    asserts:
+      - matchRegex:
+          path: stringData["openrun.toml"]
+          pattern: '/customdb\?sslmode='
+      - matchRegex:
+          path: stringData["openrun.toml"]
+          pattern: '/customaudit\?sslmode='
+
+  - it: should use custom sslmode for embedded postgres
+    set:
+      postgres.enabled: true
+      config.metadata.sslMode: require
+      registry.enabled: true
+    asserts:
+      - matchRegex:
+          path: stringData["openrun.toml"]
+          pattern: 'sslmode=require'
+
+  - it: should use sslmode for external database
+    set:
+      postgres.enabled: false
+      externalDatabase.enabled: true
+      externalDatabase.host: mydb.example.com
+      externalDatabase.existingSecretName: my-secret
+      externalDatabase.sslMode: verify-full
+      registry.enabled: true
+    asserts:
+      - matchRegex:
+          path: stringData["openrun.toml"]
+          pattern: 'sslmode=verify-full'
+
+  - it: should use custom parameters for external database
+    set:
+      postgres.enabled: false
+      externalDatabase.enabled: true
+      externalDatabase.host: mydb.example.com
+      externalDatabase.existingSecretName: my-secret
+      externalDatabase.parameters: "sslmode=require&connect_timeout=10"
+      registry.enabled: true
+    asserts:
+      - matchRegex:
+          path: stringData["openrun.toml"]
+          pattern: 'sslmode=require&connect_timeout=10'
