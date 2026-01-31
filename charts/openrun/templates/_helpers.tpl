@@ -245,8 +245,8 @@ Accepts optional "database" parameter to override the database name.
   {{- if $database -}}
     {{- $dbName = $database -}}
   {{- end -}}
-  {{- $userRef := printf "{{secret \"%s\" \"%s\"}}" $secretName $usernameKey -}}
-  {{- $passRef := printf "{{secret \"%s\" \"%s\"}}" $secretName $passwordKey -}}
+  {{- $userRef := printf "{{secret \"%s\" \"%s\" | pathEscape}}" $secretName $usernameKey -}}
+  {{- $passRef := printf "{{secret \"%s\" \"%s\" | pathEscape}}" $secretName $passwordKey -}}
   {{- if $parameters -}}
     {{- printf "postgres://%s:%s@%s:%v/%s?%s" $userRef $passRef $host $port $dbName $parameters -}}
   {{- else -}}

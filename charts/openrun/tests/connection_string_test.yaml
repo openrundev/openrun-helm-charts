@@ -12,10 +12,10 @@ tests:
           of: Secret
       - matchRegex:
           path: stringData["openrun.toml"]
-          pattern: 'db_connection = ''postgres://\{\{secret ".*" "username"\}\}:\{\{secret ".*" "password"\}\}@.*:5432/openrun\?sslmode=disable'''
+          pattern: 'db_connection = ''postgres://\{\{secret ".*" "username" \| pathEscape\}\}:\{\{secret ".*" "password" \| pathEscape\}\}@.*:5432/openrun\?sslmode=disable'''
       - matchRegex:
           path: stringData["openrun.toml"]
-          pattern: 'audit_db_connection = ''postgres://\{\{secret ".*" "username"\}\}:\{\{secret ".*" "password"\}\}@.*:5432/openrun_audit\?sslmode=disable'''
+          pattern: 'audit_db_connection = ''postgres://\{\{secret ".*" "username" \| pathEscape\}\}:\{\{secret ".*" "password" \| pathEscape\}\}@.*:5432/openrun_audit\?sslmode=disable'''
 
   - it: should reference correct secret name for embedded postgres
     set:
@@ -24,10 +24,10 @@ tests:
     asserts:
       - matchRegex:
           path: stringData["openrun.toml"]
-          pattern: 'secret ".*-db-app" "username"'
+          pattern: 'secret ".*-db-app" "username" \| pathEscape'
       - matchRegex:
           path: stringData["openrun.toml"]
-          pattern: 'secret ".*-db-app" "password"'
+          pattern: 'secret ".*-db-app" "password" \| pathEscape'
 
   - it: should use custom secret keys for embedded postgres
     set:
@@ -38,10 +38,10 @@ tests:
     asserts:
       - matchRegex:
           path: stringData["openrun.toml"]
-          pattern: 'secret ".*-db-app" "user"'
+          pattern: 'secret ".*-db-app" "user" \| pathEscape'
       - matchRegex:
           path: stringData["openrun.toml"]
-          pattern: 'secret ".*-db-app" "pass"'
+          pattern: 'secret ".*-db-app" "pass" \| pathEscape'
 
   - it: should use existingSecretName for external database
     set:
@@ -55,10 +55,10 @@ tests:
     asserts:
       - matchRegex:
           path: stringData["openrun.toml"]
-          pattern: 'secret "my-terraform-secret" "db_user"'
+          pattern: 'secret "my-terraform-secret" "db_user" \| pathEscape'
       - matchRegex:
           path: stringData["openrun.toml"]
-          pattern: 'secret "my-terraform-secret" "db_pass"'
+          pattern: 'secret "my-terraform-secret" "db_pass" \| pathEscape'
       - matchRegex:
           path: stringData["openrun.toml"]
           pattern: '@mydb.example.com:5432/'
@@ -74,10 +74,10 @@ tests:
     asserts:
       - matchRegex:
           path: stringData["openrun.toml"]
-          pattern: 'secret ".*-external-db" "username"'
+          pattern: 'secret ".*-external-db" "username" \| pathEscape'
       - matchRegex:
           path: stringData["openrun.toml"]
-          pattern: 'secret ".*-external-db" "password"'
+          pattern: 'secret ".*-external-db" "password" \| pathEscape'
 
   - it: should use custom database names
     set:
