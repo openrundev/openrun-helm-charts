@@ -49,10 +49,22 @@ callback_url = "{{ . }}"
 {{- end }}
 
 [metadata]
-{{- $metadataDb := include "openrun.databaseConnectionWithSecrets" (dict "context" . "database" (default "openrun" .Values.config.metadata.database)) }}
-{{- $auditDb := include "openrun.databaseConnectionWithSecrets" (dict "context" . "database" (default "openrun_audit" .Values.config.metadata.auditDatabase)) }}
+{{- $mainDbName := default (include "openrun.defaultDatabaseName" .) .Values.config.metadata.database }}
+{{- $auditDbName := default (include "openrun.defaultAuditDatabaseName" .) .Values.config.metadata.auditDatabase }}
+{{- $metadataDb := include "openrun.databaseConnectionWithSecrets" (dict "context" . "database" $mainDbName) }}
+{{- $auditDb := include "openrun.databaseConnectionWithSecrets" (dict "context" . "database" $auditDbName) }}
 db_connection = '{{ $metadataDb }}'
 audit_db_connection = '{{ $auditDb }}'
+
+{{- $appStoreDbName := default (include "openrun.defaultAppStoreDatabaseName" .) .Values.config.metadata.appStoreDatabase }}
+{{- $appStoreDb := include "openrun.databaseConnectionWithSecrets" (dict "context" . "database" $appStoreDbName) }}
+[plugin."store.in"]
+db_connection = '{{ $appStoreDb }}'
+
+{{- $fsDbName := default (include "openrun.defaultFsDatabaseName" .) .Values.config.metadata.fsDatabase }}
+{{- $fsDb := include "openrun.databaseConnectionWithSecrets" (dict "context" . "database" $fsDbName) }}
+[plugin."fs.in"]
+db_connection = '{{ $fsDb }}'
 
 [system]
 container_command = "kubernetes"

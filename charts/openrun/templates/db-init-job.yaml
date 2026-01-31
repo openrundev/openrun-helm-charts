@@ -206,7 +206,7 @@ spec:
             {{- end }}
             {{- end }}
             - name: POSTGRES_APP_DATABASE
-              value: {{ default "openrun" .Values.config.metadata.database | quote }}
+              value: {{ default (include "openrun.defaultDatabaseName" .) .Values.config.metadata.database | quote }}
             - name: POSTGRES_EXTRA_DATABASES
               value: {{ include "openrun.postgresExtraDatabases" . | quote }}
 {{- end }}

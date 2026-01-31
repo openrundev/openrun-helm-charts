@@ -1,0 +1,122 @@
+# Tests for database initialization job
+suite: Database Init Job Tests
+templates:
+  - db-init-job.yaml
+tests:
+  # Tests for embedded PostgreSQL
+  - it: should create all namespace-based databases for embedded postgres
+    release:
+      namespace: myapp
+    set:
+      postgres.enabled: true
+    asserts:
+      - isKind:
+          of: Job
+      - matchRegex:
+          path: spec.template.spec.containers[0].env[?(@.name=="POSTGRES_APP_DATABASE")].value
+          pattern: 'myapp_main'
+      - matchRegex:
+          path: spec.template.spec.containers[0].env[?(@.name=="POSTGRES_EXTRA_DATABASES")].value
+          pattern: 'myapp_main'
+      - matchRegex:
+          path: spec.template.spec.containers[0].env[?(@.name=="POSTGRES_EXTRA_DATABASES")].value
+          pattern: 'myapp_audit'
+      - matchRegex:
+          path: spec.template.spec.containers[0].env[?(@.name=="POSTGRES_EXTRA_DATABASES")].value
+          pattern: 'myapp_app_store'
+      - matchRegex:
+          path: spec.template.spec.containers[0].env[?(@.name=="POSTGRES_EXTRA_DATABASES")].value
+          pattern: 'myapp_fs'
+
+  # Tests for external database (Terraform)
+  - it: should create all namespace-based databases for external database (Terraform)
+    release:
+      namespace: prod
+    set:
+      postgres.enabled: false
+      externalDatabase.enabled: true
+      externalDatabase.host: terraform-rds.example.com
+      externalDatabase.existingSecretName: terraform-db-credentials
+    asserts:
+      - isKind:
+          of: Job
+      - matchRegex:
+          path: spec.template.spec.containers[0].env[?(@.name=="POSTGRES_APP_DATABASE")].value
+          pattern: 'prod_main'
+      - matchRegex:
+          path: spec.template.spec.containers[0].env[?(@.name=="POSTGRES_EXTRA_DATABASES")].value
+          pattern: 'prod_main'
+      - matchRegex:
+          path: spec.template.spec.containers[0].env[?(@.name=="POSTGRES_EXTRA_DATABASES")].value
+          pattern: 'prod_audit'
+      - matchRegex:
+          path: spec.template.spec.containers[0].env[?(@.name=="POSTGRES_EXTRA_DATABASES")].value
+          pattern: 'prod_app_store'
+      - matchRegex:
+          path: spec.template.spec.containers[0].env[?(@.name=="POSTGRES_EXTRA_DATABASES")].value
+          pattern: 'prod_fs'
+
+  - it: should use Terraform secret for credentials
+    release:
+      namespace: prod
+    set:
+      postgres.enabled: false
+      externalDatabase.enabled: true
+      externalDatabase.host: terraform-rds.example.com
+      externalDatabase.existingSecretName: terraform-db-credentials
+      externalDatabase.usernameKey: db_user
+      externalDatabase.passwordKey: db_pass
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name=="POSTGRES_USER")].valueFrom.secretKeyRef.name
+          value: terraform-db-credentials
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name=="POSTGRES_USER")].valueFrom.secretKeyRef.key
+          value: db_user
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name=="POSTGRES_PASSWORD")].valueFrom.secretKeyRef.name
+          value: terraform-db-credentials
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name=="POSTGRES_PASSWORD")].valueFrom.secretKeyRef.key
+          value: db_pass
+
+  - it: should use custom database names when overridden
+    release:
+      namespace: myapp
+    set:
+      postgres.enabled: true
+      config.metadata.database: custom_main
+      config.metadata.auditDatabase: custom_audit
+      config.metadata.appStoreDatabase: custom_store
+      config.metadata.fsDatabase: custom_fs
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].env[?(@.name=="POSTGRES_APP_DATABASE")].value
+          pattern: 'custom_main'
+      - matchRegex:
+          path: spec.template.spec.containers[0].env[?(@.name=="POSTGRES_EXTRA_DATABASES")].value
+          pattern: 'custom_main'
+      - matchRegex:
+          path: spec.template.spec.containers[0].env[?(@.name=="POSTGRES_EXTRA_DATABASES")].value
+          pattern: 'custom_audit'
+      - matchRegex:
+          path: spec.template.spec.containers[0].env[?(@.name=="POSTGRES_EXTRA_DATABASES")].value
+          pattern: 'custom_store'
+      - matchRegex:
+          path: spec.template.spec.containers[0].env[?(@.name=="POSTGRES_EXTRA_DATABASES")].value
+          pattern: 'custom_fs'
+
+  - it: should connect to external database host
+    set:
+      postgres.enabled: false
+      externalDatabase.enabled: true
+      externalDatabase.host: terraform-rds.example.com
+      externalDatabase.port: 5433
+      externalDatabase.existingSecretName: my-secret
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name=="POSTGRES_HOST")].value
+          value: terraform-rds.example.com
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name=="POSTGRES_PORT")].value
+          value: "5433"

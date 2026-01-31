@@ -167,15 +167,15 @@ auth:
 
 Each entry generates an `[auth.<name>]` section in `openrun.toml`. All keys are optional:
 
-| Key            | Description                        | Used by        |
-| -------------- | ---------------------------------- | -------------- |
-| `key`          | OAuth client ID                    | All providers  |
-| `secret`       | OAuth client secret                | All providers  |
-| `hostedDomain` | Restrict to hosted domain          | Google         |
-| `domain`       | Auth0 domain                       | Auth0          |
-| `orgUrl`       | Organization URL                   | Okta           |
-| `discoveryUrl` | OIDC discovery endpoint            | Generic OIDC   |
-| `scopes`       | List of OAuth scopes to request    | All providers  |
+| Key            | Description                     | Used by       |
+| -------------- | ------------------------------- | ------------- |
+| `key`          | OAuth client ID                 | All providers |
+| `secret`       | OAuth client secret             | All providers |
+| `hostedDomain` | Restrict to hosted domain       | Google        |
+| `domain`       | Auth0 domain                    | Auth0         |
+| `orgUrl`       | Organization URL                | Okta          |
+| `discoveryUrl` | OIDC discovery endpoint         | Generic OIDC  |
+| `scopes`       | List of OAuth scopes to request | All providers |
 
 ## SAML Authentication
 
@@ -197,11 +197,11 @@ saml:
 
 Each entry generates a `[saml.<name>]` section in `openrun.toml`. All keys are optional:
 
-| Key           | Description                          |
-| ------------- | ------------------------------------ |
-| `metadataUrl` | SAML metadata URL                    |
-| `groupsAttr`  | Attribute name for group membership  |
-| `usePost`     | Use POST binding (default: false)    |
+| Key           | Description                              |
+| ------------- | ---------------------------------------- |
+| `metadataUrl` | SAML metadata URL                        |
+| `groupsAttr`  | Attribute name for group membership      |
+| `usePost`     | Use POST binding (default: false)        |
 | `forceAuthn`  | Force re-authentication (default: false) |
 
 ## Useful values

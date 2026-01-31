@@ -157,12 +157,48 @@ app.kubernetes.io/component: registry
   {{- printf "%s-db-init-complete" (include "openrun.fullname" .) -}}
 {{- end -}}
 
+{{/*
+Returns the default main database name based on namespace.
+Format: <namespace>_main
+*/}}
+{{- define "openrun.defaultDatabaseName" -}}
+  {{- printf "%s_main" .Release.Namespace -}}
+{{- end -}}
+
+{{/*
+Returns the default audit database name based on namespace.
+Format: <namespace>_audit
+*/}}
+{{- define "openrun.defaultAuditDatabaseName" -}}
+  {{- printf "%s_audit" .Release.Namespace -}}
+{{- end -}}
+
+{{/*
+Returns the default app store database name based on namespace.
+Format: <namespace>_app_store
+*/}}
+{{- define "openrun.defaultAppStoreDatabaseName" -}}
+  {{- printf "%s_app_store" .Release.Namespace -}}
+{{- end -}}
+
+{{/*
+Returns the default fs database name based on namespace.
+Format: <namespace>_fs
+*/}}
+{{- define "openrun.defaultFsDatabaseName" -}}
+  {{- printf "%s_fs" .Release.Namespace -}}
+{{- end -}}
+
 {{- define "openrun.postgresPrimaryDatabase" -}}
-  {{- default "openrun" .Values.config.metadata.database -}}
+  {{- default (include "openrun.defaultDatabaseName" .) .Values.config.metadata.database -}}
 {{- end -}}
 
 {{- define "openrun.postgresExtraDatabases" -}}
-  {{- $dbs := list (default "openrun" .Values.config.metadata.database) (default "openrun_audit" .Values.config.metadata.auditDatabase) -}}
+  {{- $mainDb := default (include "openrun.defaultDatabaseName" .) .Values.config.metadata.database -}}
+  {{- $auditDb := default (include "openrun.defaultAuditDatabaseName" .) .Values.config.metadata.auditDatabase -}}
+  {{- $appStoreDb := default (include "openrun.defaultAppStoreDatabaseName" .) .Values.config.metadata.appStoreDatabase -}}
+  {{- $fsDb := default (include "openrun.defaultFsDatabaseName" .) .Values.config.metadata.fsDatabase -}}
+  {{- $dbs := list $mainDb $auditDb $appStoreDb $fsDb -}}
   {{- $seen := dict -}}
   {{- $result := list -}}
   {{- range $db := $dbs }}

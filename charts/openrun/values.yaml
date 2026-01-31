@@ -73,8 +73,14 @@ config:
     password: ""
     awsRegion: ""
   metadata:
-    database: openrun
-    auditDatabase: openrun_audit
+    # Database name for main metadata. Defaults to <namespace>_main if empty.
+    database: ""
+    # Database name for audit logs. Defaults to <namespace>_audit if empty.
+    auditDatabase: ""
+    # Database name for app store plugin. Defaults to <namespace>_app_store if empty.
+    appStoreDatabase: ""
+    # Database name for fs plugin. Defaults to <namespace>_fs if empty.
+    fsDatabase: ""
     sslMode: disable
     parameters: ""
   kubernetes:
