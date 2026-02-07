@@ -12,7 +12,7 @@ metadata:
     {{- include "openrun.labels" . | nindent 4 }}
 rules:
   - apiGroups: ["apps"]
-    resources: ["deployments", "deployments/status", "statefulsets", "daemonsets", "replicasets"]
+    resources: ["deployments", "deployments/status", "deployments/scale", "statefulsets", "daemonsets", "replicasets"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
   - apiGroups: [""]
     resources: ["pods", "pods/log", "pods/status", "pods/exec", "pods/attach", "services", "configmaps", "secrets", "events", "serviceaccounts", "persistentvolumeclaims"]
@@ -57,7 +57,7 @@ metadata:
     {{- include "openrun.labels" . | nindent 4 }}
 rules:
   - apiGroups: ["apps"]
-    resources: ["deployments", "deployments/status", "statefulsets", "daemonsets", "replicasets"]
+    resources: ["deployments", "deployments/status", "deployments/scale", "statefulsets", "daemonsets", "replicasets"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
   - apiGroups: [""]
     resources: ["pods", "pods/log", "pods/status", "pods/exec", "pods/attach", "services", "configmaps", "secrets", "events", "serviceaccounts", "persistentvolumeclaims"]
@@ -101,7 +101,7 @@ metadata:
     {{- include "openrun.labels" . | nindent 4 }}
 rules:
   - apiGroups: ["apps"]
-    resources: ["deployments", "deployments/status", "statefulsets", "daemonsets", "replicasets"]
+    resources: ["deployments", "deployments/status", "deployments/scale", "statefulsets", "daemonsets", "replicasets"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
   - apiGroups: [""]
     resources: ["pods", "pods/log", "pods/status", "pods/exec", "pods/attach", "services", "configmaps", "secrets", "events", "serviceaccounts", "persistentvolumeclaims"]
