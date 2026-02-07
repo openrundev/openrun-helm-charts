@@ -216,3 +216,21 @@ tests:
       - matchRegex:
           path: stringData["openrun.toml"]
           pattern: '/custom_fs\?sslmode='
+
+  # Note: Tests for registry existingSecretName require a real cluster with the secret present.
+  # The lookup function returns empty in helm unittest, so we only test the fallback behavior.
+
+  - it: should use inline registry config when existingSecretName is not set
+    set:
+      postgres.enabled: true
+      registry.enabled: true
+    asserts:
+      - matchRegex:
+          path: stringData["openrun.toml"]
+          pattern: 'url = ".*"'
+      - matchRegex:
+          path: stringData["openrun.toml"]
+          pattern: 'insecure = '
+      - notMatchRegex:
+          path: stringData["openrun.toml"]
+          pattern: 'config_from_secret'

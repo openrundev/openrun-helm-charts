@@ -102,7 +102,6 @@ externalDatabase:
   enabled: true
   host: postgres.mycompany.net
   port: 5432
-  database: openrun
   username: openrun
   password: "<db-password>"
   # alternatively reference a secret created beforehand
@@ -110,6 +109,98 @@ externalDatabase:
 ```
 
 The chart fails to render if neither `postgres.enabled` nor `externalDatabase.enabled` are set to `true`.
+
+### Database Names
+
+OpenRun uses four databases, with names derived from the deployment namespace:
+
+| Database | Default Name | Purpose |
+| -------- | ------------ | ------- |
+| Main | `<namespace>_main` | Core metadata |
+| Audit | `<namespace>_audit` | Audit logs |
+| App Store | `<namespace>_app_store` | Store plugin |
+| Filesystem | `<namespace>_fs` | FS plugin |
+
+For example, deploying to namespace `prod` creates: `prod_main`, `prod_audit`, `prod_app_store`, `prod_fs`.
+
+The db-init job automatically creates these databases. Ensure the database user has `CREATE DATABASE` privileges, or pre-create them via Terraform.
+
+To override the default names:
+
+```yaml
+config:
+  metadata:
+    database: "custom_main"
+    auditDatabase: "custom_audit"
+    appStoreDatabase: "custom_store"
+    fsDatabase: "custom_fs"
+```
+
+### Terraform-Managed Infrastructure
+
+For production deployments with Terraform-managed infrastructure (RDS, Cloud SQL, ECR, GCR, etc.), secrets must be copied to the OpenRun namespace before deployment.
+
+**Important:** Kubernetes Secrets are namespace-scoped. All secrets must exist in the same namespace where OpenRun is deployed.
+
+```bash
+# Set variables
+TERRAFORM_NS=<terraform-namespace>
+OPENRUN_NS=<openrun-namespace>
+
+# Create the namespace if it doesn't exist
+kubectl create namespace $OPENRUN_NS --dry-run=client -o yaml | kubectl apply -f -
+
+# Copy database credentials secret
+kubectl get secret openrun-db-credentials -n $TERRAFORM_NS -o yaml | \
+  sed "s/namespace: .*/namespace: $OPENRUN_NS/" | \
+  kubectl apply -f -
+
+# Copy registry credentials secret (if using private registry)
+kubectl get secret openrun-registry-credentials -n $TERRAFORM_NS -o yaml | \
+  sed "s/namespace: .*/namespace: $OPENRUN_NS/" | \
+  kubectl apply -f -
+
+# Deploy OpenRun
+helm install openrun ./charts/openrun \
+  --namespace $OPENRUN_NS \
+  -f examples/values-terraform-external-db.yaml
+```
+
+Example values configuration:
+
+```yaml
+postgres:
+  enabled: false
+
+externalDatabase:
+  enabled: true
+  host: "mydb.abc123.us-east-1.rds.amazonaws.com"
+  port: 5432
+  existingSecretName: "openrun-db-credentials"
+  usernameKey: "username"
+  passwordKey: "password"
+  sslMode: "require"
+
+registry:
+  enabled: false
+
+config:
+  registry:
+    # Reference secret containing registry config as JSON
+    existingSecretName: "openrun-registry-credentials"
+```
+
+The registry secret should contain JSON with the registry configuration. The JSON is read at deploy time and embedded directly in the config:
+
+```bash
+kubectl create secret generic openrun-registry-credentials \
+  --namespace $OPENRUN_NS \
+  --from-literal=config='{"url":"registry.example.com","project":"openrun","username":"user","password":"pass","insecure":false,"type":"harbor"}'
+```
+
+**Note:** The secret must exist before running `helm install`.
+
+See [`examples/values-terraform-external-db.yaml`](examples/values-terraform-external-db.yaml) for a complete example.
 
 ## RBAC
 

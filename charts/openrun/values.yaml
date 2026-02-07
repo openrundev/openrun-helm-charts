@@ -72,6 +72,10 @@ config:
     username: ""
     password: ""
     awsRegion: ""
+    # Reference to existing secret containing registry configuration as JSON.
+    # The secret data should be JSON in the same format as config.registry
+    # (url, project, username, password, etc.). If set, config.registry values above are ignored.
+    existingSecretName: ""
   metadata:
     # Database name for main metadata. Defaults to <namespace>_main if empty.
     database: ""
