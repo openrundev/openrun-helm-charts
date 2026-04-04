@@ -1,8 +1,8 @@
 apiVersion: v2
 name: openrun
 type: application
-version: 0.1.44
-appVersion: 0.16.23
+version: 0.1.45
+appVersion: 0.16.24
 
 description: OpenRun - App Deployment Simplified
 home: https://openrun.dev/
