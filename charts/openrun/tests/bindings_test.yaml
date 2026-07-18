@@ -1,0 +1,50 @@
+# Tests for out of process binding provider configuration
+suite: Binding Providers Tests
+templates:
+  - config-secret.yaml
+tests:
+  - it: should not render a bindings section by default
+    set:
+      registry.enabled: true
+    asserts:
+      - notMatchRegex:
+          path: stringData["openrun.toml"]
+          pattern: '\[bindings\]'
+
+  - it: should render declaratively installed providers
+    set:
+      registry.enabled: true
+      bindings.install.redis: v0.1.0
+      bindings.install.mongodb: v0.2.0
+    asserts:
+      - matchRegex:
+          path: stringData["openrun.toml"]
+          pattern: '\[bindings\.install\]'
+      - matchRegex:
+          path: stringData["openrun.toml"]
+          pattern: 'redis = "v0\.1\.0"'
+      - matchRegex:
+          path: stringData["openrun.toml"]
+          pattern: 'mongodb = "v0\.2\.0"'
+
+  - it: should render the release url template mirror override
+    set:
+      registry.enabled: true
+      bindings.releaseUrlTemplate: "https://mirror.internal/{provider}/{version}/openrun-binding-{provider}-{os}-{arch}"
+      bindings.install.redis: v0.1.0
+    asserts:
+      - matchRegex:
+          path: stringData["openrun.toml"]
+          pattern: '\[bindings\]'
+      - matchRegex:
+          path: stringData["openrun.toml"]
+          pattern: 'release_url_template = "https://mirror\.internal/\{provider\}/\{version\}/openrun-binding-\{provider\}-\{os\}-\{arch\}"'
+
+  - it: should render the install table after the bindings table header
+    set:
+      registry.enabled: true
+      bindings.install.redis: v0.1.0
+    asserts:
+      - matchRegex:
+          path: stringData["openrun.toml"]
+          pattern: '(?s)\[bindings\].*\[bindings\.install\].*redis = "v0\.1\.0"'

@@ -103,6 +103,19 @@ The chart fails to render if neither `postgres.enabled` nor `externalDatabase.en
 
 A dedicated service account is created by default. The chart installs either a `ClusterRole` or namespace-scoped `Role` (switch via `rbac.clusterWide`). The role grants the verbs required for OpenRun to lazily create Deployments, Services, ConfigMaps, Secrets, Jobs, PVCs and related resources on behalf of applications.
 
+## Binding Providers
+
+Out of process [binding providers](https://github.com/openrundev/bindings) (mongodb, redis, sqlserver, oracle) can be installed declaratively:
+
+```yaml
+bindings:
+  install:
+    redis: v0.1.0
+    mongodb: v0.1.0
+```
+
+Each server replica downloads, verifies and registers the declared providers at startup, before serving traffic, and their service types become available for `openrun service create`. Upgrading a provider is a version change followed by a rollout; providers declared here cannot be modified with the `openrun provider` CLI. Set `bindings.releaseUrlTemplate` to download the binaries from an internal mirror when the cluster restricts egress.
+
 ## Git Authentication
 
 OpenRun can authenticate to private Git repositories using SSH keys or personal access tokens. Multiple authentication accounts can be configured via the `gitAuth` values:
@@ -203,5 +216,6 @@ Each entry generates a `[saml.<name>]` section in `openrun.toml`. All keys are o
 | `gitAuth`            | Git authentication accounts for private repos       | `{}`              |
 | `auth`               | OAuth/OIDC providers for app authentication         | `{}`              |
 | `saml`               | SAML providers for app authentication               | `{}`              |
+| `bindings.install`   | Binding providers installed at startup (name: version) | `{}`           |
 
 Refer to `values.yaml` for the full list of tunables.

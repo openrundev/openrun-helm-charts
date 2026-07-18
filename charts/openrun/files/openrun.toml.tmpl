@@ -78,6 +78,21 @@ default_domain = "{{ $defaultDomain }}"
 [kubernetes]
 namespace = "{{ default .Release.Namespace .Values.config.kubernetes.namespace }}"
 
+{{- if or .Values.bindings.releaseUrlTemplate .Values.bindings.install }}
+
+[bindings]
+{{- with .Values.bindings.releaseUrlTemplate }}
+release_url_template = "{{ . }}"
+{{- end }}
+{{- if .Values.bindings.install }}
+
+[bindings.install]
+{{- range $name, $version := .Values.bindings.install }}
+{{ $name }} = "{{ $version }}"
+{{- end }}
+{{- end }}
+{{- end }}
+
 {{- if .Values.config.registry.existingSecretName }}
 {{- $secretName := .Values.config.registry.existingSecretName }}
 {{- $secret := lookup "v1" "Secret" .Release.Namespace $secretName }}

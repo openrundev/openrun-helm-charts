@@ -1,0 +1,32 @@
+# OpenRun with Terraform-managed PostgreSQL and Registry
+#
+# Before deploying, copy secrets to the OpenRun namespace:
+#
+#   TERRAFORM_NS=<terraform-namespace>
+#   OPENRUN_NS=<openrun-namespace>
+#
+#   kubectl create namespace $OPENRUN_NS --dry-run=client -o yaml | kubectl apply -f -
+#
+#   kubectl get secret openrun-db-credentials -n $TERRAFORM_NS -o yaml | \
+#     sed "s/namespace: .*/namespace: $OPENRUN_NS/" | kubectl apply -f -
+#
+#   kubectl get secret openrun-registry-credentials -n $TERRAFORM_NS -o yaml | \
+#     sed "s/namespace: .*/namespace: $OPENRUN_NS/" | kubectl apply -f -
+#
+#   helm install openrun ./charts/openrun -n $OPENRUN_NS -f examples/values-terraform-external-db.yaml
+
+postgres:
+  enabled: false
+
+externalDatabase:
+  enabled: true
+  host: "your-rds-endpoint.example.com"
+  existingSecretName: "openrun-db-credentials"
+  sslMode: "require"
+
+registry:
+  enabled: false
+
+config:
+  registry:
+    existingSecretName: "openrun-registry-credentials"

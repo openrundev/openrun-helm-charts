@@ -167,6 +167,27 @@ dbInit:
 openrunConfigSecret:
   name: ""
 
+# Out of process binding providers (https://github.com/openrundev/bindings).
+# Providers listed under install are downloaded, verified and registered in the
+# metadata database automatically at server startup; every replica converges on
+# the declared set. Upgrading a provider is a version change followed by a
+# rollout. Providers declared here cannot be modified with the provider CLI;
+# removing an entry does not uninstall the provider (it becomes manageable with
+# the provider CLI). Append @sha256:<hex> to a version to pin the binary digest;
+# for mixed-architecture clusters list one digest per platform, comma-separated.
+# Example:
+#   bindings:
+#     install:
+#       redis: v0.1.0
+#       mongodb: v0.1.0@sha256:8f4e...
+bindings:
+  # Providers to install declaratively: name -> version
+  install: {}
+  # Override to download provider binaries from an internal mirror instead of
+  # the openrundev/bindings GitHub releases. {provider}, {version}, {os} and
+  # {arch} are replaced.
+  releaseUrlTemplate: ""
+
 # Git authentication for private repositories.
 # Multiple auth accounts can be configured. Each entry requires:
 #   - user_id: The username/user ID for authentication
