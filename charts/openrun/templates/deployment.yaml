@@ -21,8 +21,21 @@ spec:
         checksum/openrun-config: {{ $config | sha256sum | quote }}
     spec:
       serviceAccountName: {{ include "openrun.serviceAccountName" . }}
-      {{- if .Values.dbInit.waitForJob }}
+      {{- if or .Values.dbInit.waitForJob .Values.bindings.images }}
       initContainers:
+      {{- end }}
+      {{- range $name, $image := .Values.bindings.images }}
+        # Copies the {{ $name }} binding provider binary out of its FROM-scratch
+        # image into the shared volume the server registers at startup.
+        - name: binding-provider-{{ $name }}
+          image: {{ $image | quote }}
+          imagePullPolicy: {{ $.Values.bindings.imagePullPolicy }}
+          command: ["/openrun-binding-{{ $name }}", "export", "/providers"]
+          volumeMounts:
+            - name: binding-providers
+              mountPath: /providers
+      {{- end }}
+      {{- if .Values.dbInit.waitForJob }}
         - name: wait-for-db-init
           image: "{{ .Values.dbInit.waitImage.repository }}:{{ .Values.dbInit.waitImage.tag }}"
           imagePullPolicy: {{ .Values.dbInit.waitImage.pullPolicy }}
@@ -90,7 +103,16 @@ spec:
             - name: config
               mountPath: {{ $configFile }}
               subPath: openrun.toml
+            {{- if .Values.bindings.images }}
+            - name: binding-providers
+              mountPath: {{ include "openrun.bindingProvidersDir" . }}
+              readOnly: true
+            {{- end }}
       volumes:
         - name: config
           secret:
             secretName: {{ include "openrun.configSecretName" . }}
+        {{- if .Values.bindings.images }}
+        - name: binding-providers
+          emptyDir: {}
+        {{- end }}

@@ -289,3 +289,11 @@ Accepts optional "database" parameter to override the database name.
     {{- printf "postgres://%s:%s@%s:%v/%s?sslmode=%s" $userRef $passRef $host $port $dbName $sslMode -}}
   {{- end -}}
 {{- end -}}
+
+{{/*
+Directory into which binding provider init containers export their binaries
+and from which the server registers them (bindings.preinstalled_dir).
+*/}}
+{{- define "openrun.bindingProvidersDir" -}}
+/var/lib/openrun/preinstalled-bindings
+{{- end -}}

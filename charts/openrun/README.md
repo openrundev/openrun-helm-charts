@@ -116,6 +116,21 @@ bindings:
 
 Each server replica downloads, verifies and registers the declared providers at startup, before serving traffic, and their service types become available for `openrun service create`. Upgrading a provider is a version change followed by a rollout; providers declared here cannot be modified with the `openrun provider` CLI. Set `bindings.releaseUrlTemplate` to download the binaries from an internal mirror when the cluster restricts egress.
 
+### OCI images
+
+Providers can alternatively be distributed as OCI images (published alongside each release as `ghcr.io/openrundev/openrun-binding-<provider>`), for clusters where binaries must come through image provenance policies or where the server pods have no egress at all:
+
+```yaml
+bindings:
+  images:
+    redis: ghcr.io/openrundev/openrun-binding-redis:v0.1.0
+    mongodb: ghcr.io/openrundev/openrun-binding-mongodb@sha256:8f4e...
+```
+
+The chart renders one init container per provider which copies the binary from its `FROM scratch` image into a shared volume; the server registers the pre-placed providers at startup, with no downloads and no database registration. Integrity comes from the image digests, so reference images by digest where policy requires it; images are pulled through the normal container runtime and honor `imagePullSecrets` and private registry mirrors.
+
+Set `bindings.disableInstall: true` to also reject the imperative `openrun provider install`/`uninstall` CLI on the deployment, making the chart values the only way providers are added.
+
 ## Git Authentication
 
 OpenRun can authenticate to private Git repositories using SSH keys or personal access tokens. Multiple authentication accounts can be configured via the `gitAuth` values:
@@ -217,5 +232,8 @@ Each entry generates a `[saml.<name>]` section in `openrun.toml`. All keys are o
 | `auth`               | OAuth/OIDC providers for app authentication         | `{}`              |
 | `saml`               | SAML providers for app authentication               | `{}`              |
 | `bindings.install`   | Binding providers installed at startup (name: version) | `{}`           |
+| `bindings.releaseUrlTemplate` | Mirror url template for binding provider downloads | GitHub releases |
+| `bindings.images`    | Binding providers from OCI images (name: image ref)    | `{}`           |
+| `bindings.disableInstall` | Disable the imperative `openrun provider` CLI     | `false`        |
 
 Refer to `values.yaml` for the full list of tunables.

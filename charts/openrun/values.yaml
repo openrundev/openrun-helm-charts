@@ -187,6 +187,21 @@ bindings:
   # the openrundev/bindings GitHub releases. {provider}, {version}, {os} and
   # {arch} are replaced.
   releaseUrlTemplate: ""
+  # OCI image distribution path (alternative to install): provider name -> image
+  # reference. An init container per provider copies its binary from the image
+  # into a shared volume; the server registers them at startup. No egress or
+  # database registration is needed; integrity/provenance comes from the image
+  # digests, so reference images by digest where the cluster's policies require
+  # it. Example:
+  #   images:
+  #     redis: ghcr.io/openrundev/openrun-binding-redis:v0.1.0
+  #     mongodb: ghcr.io/openrundev/openrun-binding-mongodb@sha256:8f4e...
+  images: {}
+  # Pull policy for the provider image init containers.
+  imagePullPolicy: IfNotPresent
+  # Disable the imperative `openrun provider install/uninstall` CLI/API on this
+  # deployment, so providers come only from bindings.install or bindings.images.
+  disableInstall: false
 
 # Git authentication for private repositories.
 # Multiple auth accounts can be configured. Each entry requires:

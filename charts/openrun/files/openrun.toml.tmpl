@@ -78,11 +78,17 @@ default_domain = "{{ $defaultDomain }}"
 [kubernetes]
 namespace = "{{ default .Release.Namespace .Values.config.kubernetes.namespace }}"
 
-{{- if or .Values.bindings.releaseUrlTemplate .Values.bindings.install }}
+{{- if or .Values.bindings.releaseUrlTemplate .Values.bindings.install .Values.bindings.images .Values.bindings.disableInstall }}
 
 [bindings]
 {{- with .Values.bindings.releaseUrlTemplate }}
 release_url_template = "{{ . }}"
+{{- end }}
+{{- if .Values.bindings.images }}
+preinstalled_dir = "{{ include "openrun.bindingProvidersDir" . }}"
+{{- end }}
+{{- if .Values.bindings.disableInstall }}
+disable_install = true
 {{- end }}
 {{- if .Values.bindings.install }}
 

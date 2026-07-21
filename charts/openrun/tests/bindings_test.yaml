@@ -40,6 +40,17 @@ tests:
           path: stringData["openrun.toml"]
           pattern: 'release_url_template = "https://mirror\.internal/\{provider\}/\{version\}/openrun-binding-\{provider\}-\{os\}-\{arch\}"'
 
+  - it: should render digest pinned provider versions
+    set:
+      registry.enabled: true
+      bindings:
+        install:
+          redis: "v0.1.0@sha256:8f4e1a2b3c4d5e6f8f4e1a2b3c4d5e6f8f4e1a2b3c4d5e6f8f4e1a2b3c4d5e6f,1a2b3c4d5e6f8f4e1a2b3c4d5e6f8f4e1a2b3c4d5e6f8f4e1a2b3c4d5e6f8f4e"
+    asserts:
+      - matchRegex:
+          path: stringData["openrun.toml"]
+          pattern: 'redis = "v0\.1\.0@sha256:8f4e1a2b3c4d5e6f8f4e1a2b3c4d5e6f8f4e1a2b3c4d5e6f8f4e1a2b3c4d5e6f,1a2b3c4d5e6f8f4e1a2b3c4d5e6f8f4e1a2b3c4d5e6f8f4e1a2b3c4d5e6f8f4e"'
+
   - it: should render the install table after the bindings table header
     set:
       registry.enabled: true
