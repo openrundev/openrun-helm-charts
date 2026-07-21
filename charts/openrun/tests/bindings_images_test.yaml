@@ -1,0 +1,102 @@
+# Tests for the OCI image / init container binding provider distribution path
+suite: Binding Provider Images Tests
+templates:
+  - deployment.yaml
+  - config-secret.yaml
+tests:
+  - it: should not render provider init containers or volume by default
+    template: deployment.yaml
+    set:
+      registry.enabled: true
+    asserts:
+      - notContains:
+          path: spec.template.spec.volumes
+          content:
+            name: binding-providers
+            emptyDir: {}
+      - notMatchRegex:
+          path: spec.template.spec.initContainers[0].name
+          pattern: '^binding-provider-'
+
+  - it: should render an init container per provider image
+    template: deployment.yaml
+    set:
+      registry.enabled: true
+      bindings.images.redis: ghcr.io/openrundev/openrun-binding-redis:v0.1.0
+      bindings.images.mongodb: ghcr.io/openrundev/openrun-binding-mongodb@sha256:8f4e1a2b
+    asserts:
+      - contains:
+          path: spec.template.spec.initContainers
+          content:
+            name: binding-provider-redis
+            image: ghcr.io/openrundev/openrun-binding-redis:v0.1.0
+            imagePullPolicy: IfNotPresent
+            command: ["/openrun-binding-redis", "export", "/providers"]
+            volumeMounts:
+              - name: binding-providers
+                mountPath: /providers
+      - contains:
+          path: spec.template.spec.initContainers
+          content:
+            name: binding-provider-mongodb
+            image: ghcr.io/openrundev/openrun-binding-mongodb@sha256:8f4e1a2b
+            imagePullPolicy: IfNotPresent
+            command: ["/openrun-binding-mongodb", "export", "/providers"]
+            volumeMounts:
+              - name: binding-providers
+                mountPath: /providers
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: binding-providers
+            emptyDir: {}
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: binding-providers
+            mountPath: /var/lib/openrun/preinstalled-bindings
+            readOnly: true
+
+  - it: should render provider init containers when the db init wait is disabled
+    template: deployment.yaml
+    set:
+      registry.enabled: true
+      dbInit.waitForJob: false
+      bindings.images.redis: ghcr.io/openrundev/openrun-binding-redis:v0.1.0
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: binding-provider-redis
+
+  - it: should set preinstalled_dir in the server config for provider images
+    template: config-secret.yaml
+    set:
+      registry.enabled: true
+      bindings.images.redis: ghcr.io/openrundev/openrun-binding-redis:v0.1.0
+    asserts:
+      - matchRegex:
+          path: stringData["openrun.toml"]
+          pattern: 'preinstalled_dir = "/var/lib/openrun/preinstalled-bindings"'
+
+  - it: should set disable_install in the server config
+    template: config-secret.yaml
+    set:
+      registry.enabled: true
+      bindings.disableInstall: true
+    asserts:
+      - matchRegex:
+          path: stringData["openrun.toml"]
+          pattern: 'disable_install = true'
+
+  - it: should not set disable_install or preinstalled_dir by default
+    template: config-secret.yaml
+    set:
+      registry.enabled: true
+      bindings.install.redis: v0.1.0
+    asserts:
+      - notMatchRegex:
+          path: stringData["openrun.toml"]
+          pattern: 'disable_install'
+      - notMatchRegex:
+          path: stringData["openrun.toml"]
+          pattern: 'preinstalled_dir'
