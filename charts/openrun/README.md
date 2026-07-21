@@ -235,5 +235,6 @@ Each entry generates a `[saml.<name>]` section in `openrun.toml`. All keys are o
 | `bindings.releaseUrlTemplate` | Mirror url template for binding provider downloads | GitHub releases |
 | `bindings.images`    | Binding providers from OCI images (name: image ref)    | `{}`           |
 | `bindings.disableInstall` | Disable the imperative `openrun provider` CLI     | `false`        |
+| `imagePullSecrets`   | Pull secrets for the server pod (server + provider images) | `[]`       |
 
 Refer to `values.yaml` for the full list of tunables.

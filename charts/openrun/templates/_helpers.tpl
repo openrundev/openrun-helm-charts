@@ -32,6 +32,19 @@ app.kubernetes.io/name: {{ include "openrun.name" . | quote }}
 app.kubernetes.io/instance: {{ .Release.Name | quote }}
 {{- end -}}
 
+{{/*
+Selector for the OpenRun server pods only. The postgres, registry and db-init
+pods carry openrun.selectorLabels plus their own component label, so anything
+selecting server pods (the API Service, monitoring) must also match on the
+server component or it picks up those pods too. The server Deployment's
+spec.selector intentionally stays openrun.selectorLabels: that field is
+immutable and changing it would break helm upgrades of existing releases.
+*/}}
+{{- define "openrun.serverSelectorLabels" -}}
+{{ include "openrun.selectorLabels" . }}
+app.kubernetes.io/component: server
+{{- end -}}
+
 {{- define "openrun.serviceAccountName" -}}
   {{- if .Values.serviceAccount.create -}}
     {{- default (printf "%s-sa" (include "openrun.fullname" .)) .Values.serviceAccount.name -}}

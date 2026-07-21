@@ -5,6 +5,12 @@ image:
   tag: ""
   pullPolicy: IfNotPresent
 
+# Pull secrets applied to the OpenRun server pod, covering the server image
+# and the bindings.images provider init containers. Example:
+#   imagePullSecrets:
+#     - name: my-registry-secret
+imagePullSecrets: []
+
 nameOverride: ""
 fullnameOverride: ""
 

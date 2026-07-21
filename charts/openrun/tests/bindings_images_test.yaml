@@ -100,3 +100,16 @@ tests:
       - notMatchRegex:
           path: stringData["openrun.toml"]
           pattern: 'preinstalled_dir'
+
+  - it: should apply imagePullSecrets to the pod
+    template: deployment.yaml
+    set:
+      registry.enabled: true
+      imagePullSecrets:
+        - name: ghcr-pull
+      bindings.images.redis: ghcr.io/openrundev/openrun-binding-redis:v0.18.7
+    asserts:
+      - contains:
+          path: spec.template.spec.imagePullSecrets
+          content:
+            name: ghcr-pull

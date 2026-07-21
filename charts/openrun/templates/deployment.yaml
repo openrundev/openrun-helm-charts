@@ -16,11 +16,15 @@ spec:
   template:
     metadata:
       labels:
-        {{- include "openrun.selectorLabels" . | nindent 8 }}
+        {{- include "openrun.serverSelectorLabels" . | nindent 8 }}
       annotations:
         checksum/openrun-config: {{ $config | sha256sum | quote }}
     spec:
       serviceAccountName: {{ include "openrun.serviceAccountName" . }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       {{- if or .Values.dbInit.waitForJob .Values.bindings.images }}
       initContainers:
       {{- end }}
