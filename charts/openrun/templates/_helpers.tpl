@@ -310,3 +310,11 @@ and from which the server registers them (bindings.preinstalled_dir).
 {{- define "openrun.bindingProvidersDir" -}}
 /var/lib/openrun/preinstalled-bindings
 {{- end -}}
+
+{{/*
+Directory into which plugin provider init containers export their binaries
+and from which the server registers them (plugin_providers.preinstalled_dir).
+*/}}
+{{- define "openrun.pluginProvidersDir" -}}
+/var/lib/openrun/preinstalled-plugins
+{{- end -}}

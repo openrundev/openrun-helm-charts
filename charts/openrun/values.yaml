@@ -209,6 +209,34 @@ bindings:
   # deployment, so providers come only from bindings.install or bindings.images.
   disableInstall: false
 
+# Out of process Starlark plugin providers, serving modules apps load with the
+# .ex suffix (load("myplugin.ex", "myplugin")). Same distribution model as
+# bindings: install downloads/registers providers in the metadata database at
+# startup; images copies the binaries out of FROM-scratch OCI images with init
+# containers (no egress or database registration needed). Append
+# @sha256:<hex> to an install version to pin the binary digest.
+# Example:
+#   pluginProviders:
+#     install:
+#       pdftool: v0.1.0
+#     images:
+#       pdftool: ghcr.io/openrundev/openrun-plugin-pdftool:v0.1.0
+pluginProviders:
+  # Providers to install declaratively: name -> version
+  install: {}
+  # Override to download provider binaries from an internal mirror.
+  # {provider}, {version}, {os} and {arch} are replaced.
+  releaseUrlTemplate: ""
+  # OCI image distribution path: provider name -> image reference. An init
+  # container per provider copies its binary from the image into a shared
+  # volume; the server registers the modules at startup.
+  images: {}
+  # Pull policy for the provider image init containers.
+  imagePullPolicy: IfNotPresent
+  # Disable the imperative provider install/uninstall CLI/API for plugin
+  # providers on this deployment.
+  disableInstall: false
+
 # Git authentication for private repositories.
 # Multiple auth accounts can be configured. Each entry requires:
 #   - user_id: The username/user ID for authentication

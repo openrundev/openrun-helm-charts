@@ -99,6 +99,27 @@ disable_install = true
 {{- end }}
 {{- end }}
 
+{{- if or .Values.pluginProviders.releaseUrlTemplate .Values.pluginProviders.install .Values.pluginProviders.images .Values.pluginProviders.disableInstall }}
+
+[plugin_providers]
+{{- with .Values.pluginProviders.releaseUrlTemplate }}
+release_url_template = "{{ . }}"
+{{- end }}
+{{- if .Values.pluginProviders.images }}
+preinstalled_dir = "{{ include "openrun.pluginProvidersDir" . }}"
+{{- end }}
+{{- if .Values.pluginProviders.disableInstall }}
+disable_install = true
+{{- end }}
+{{- if .Values.pluginProviders.install }}
+
+[plugin_providers.install]
+{{- range $name, $version := .Values.pluginProviders.install }}
+{{ $name }} = "{{ $version }}"
+{{- end }}
+{{- end }}
+{{- end }}
+
 {{- if .Values.config.registry.existingSecretName }}
 {{- $secretName := .Values.config.registry.existingSecretName }}
 {{- $secret := lookup "v1" "Secret" .Release.Namespace $secretName }}

@@ -25,7 +25,7 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- if or .Values.dbInit.waitForJob .Values.bindings.images }}
+      {{- if or .Values.dbInit.waitForJob .Values.bindings.images .Values.pluginProviders.images }}
       initContainers:
       {{- end }}
       {{- range $name, $image := .Values.bindings.images }}
@@ -37,6 +37,17 @@ spec:
           command: ["/openrun-binding-{{ $name }}", "export", "/providers"]
           volumeMounts:
             - name: binding-providers
+              mountPath: /providers
+      {{- end }}
+      {{- range $name, $image := .Values.pluginProviders.images }}
+        # Copies the {{ $name }} plugin provider binary out of its FROM-scratch
+        # image into the shared volume the server registers at startup.
+        - name: plugin-provider-{{ $name }}
+          image: {{ $image | quote }}
+          imagePullPolicy: {{ $.Values.pluginProviders.imagePullPolicy }}
+          command: ["/openrun-plugin-{{ $name }}", "export", "/providers"]
+          volumeMounts:
+            - name: plugin-providers
               mountPath: /providers
       {{- end }}
       {{- if .Values.dbInit.waitForJob }}
@@ -112,11 +123,20 @@ spec:
               mountPath: {{ include "openrun.bindingProvidersDir" . }}
               readOnly: true
             {{- end }}
+            {{- if .Values.pluginProviders.images }}
+            - name: plugin-providers
+              mountPath: {{ include "openrun.pluginProvidersDir" . }}
+              readOnly: true
+            {{- end }}
       volumes:
         - name: config
           secret:
             secretName: {{ include "openrun.configSecretName" . }}
         {{- if .Values.bindings.images }}
         - name: binding-providers
+          emptyDir: {}
+        {{- end }}
+        {{- if .Values.pluginProviders.images }}
+        - name: plugin-providers
           emptyDir: {}
         {{- end }}
