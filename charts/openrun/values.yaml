@@ -96,6 +96,15 @@ config:
   kubernetes:
     namespace: ""
 
+# Encryption key for the embedded metadata-database secrets provider. By
+# default the chart generates a namespace-scoped Kubernetes Secret on the
+# first install and keeps its value across upgrades. Set existingSecretName to
+# use a Secret managed by an external secrets controller instead.
+dbSecrets:
+  enabled: true
+  existingSecretName: ""
+  keyName: key
+
 postgres:
   # The bundled StatefulSet is intended for demos and testing. For production,
   # point OpenRun at a managed Postgres service or a CloudNativePG deployment.

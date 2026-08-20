@@ -1,0 +1,131 @@
+# Tests for Starlark plugin provider distribution: declarative installs and
+# the OCI image / init container path
+suite: Plugin Provider Tests
+templates:
+  - deployment.yaml
+  - config-secret.yaml
+tests:
+  - it: should not render plugin provider init containers, volume or config by default
+    set:
+      registry.enabled: true
+    asserts:
+      - notContains:
+          path: spec.template.spec.volumes
+          content:
+            name: plugin-providers
+            emptyDir: {}
+        template: deployment.yaml
+      - notMatchRegex:
+          path: stringData["openrun.toml"]
+          pattern: 'plugin_providers'
+        template: config-secret.yaml
+
+  - it: should render an init container per plugin provider image
+    template: deployment.yaml
+    set:
+      registry.enabled: true
+      pluginProviders.images.pdftool: ghcr.io/openrundev/openrun-plugin-pdftool:v0.1.0
+    asserts:
+      - contains:
+          path: spec.template.spec.initContainers
+          content:
+            name: plugin-provider-pdftool
+            image: ghcr.io/openrundev/openrun-plugin-pdftool:v0.1.0
+            imagePullPolicy: IfNotPresent
+            command: ["/openrun-plugin-pdftool", "export", "/providers"]
+            volumeMounts:
+              - name: plugin-providers
+                mountPath: /providers
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: plugin-providers
+            emptyDir: {}
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: plugin-providers
+            mountPath: /var/lib/openrun/preinstalled-plugins
+            readOnly: true
+
+  - it: should render plugin provider init containers when the db init wait is disabled
+    template: deployment.yaml
+    set:
+      registry.enabled: true
+      dbInit.waitForJob: false
+      pluginProviders.images.pdftool: ghcr.io/openrundev/openrun-plugin-pdftool:v0.1.0
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.initContainers[0].name
+          pattern: '^plugin-provider-pdftool$'
+
+  - it: should set preinstalled_dir in the server config for provider images
+    template: config-secret.yaml
+    set:
+      registry.enabled: true
+      pluginProviders.images.pdftool: ghcr.io/openrundev/openrun-plugin-pdftool:v0.1.0
+    asserts:
+      - matchRegex:
+          path: stringData["openrun.toml"]
+          pattern: '\[plugin_providers\]'
+      - matchRegex:
+          path: stringData["openrun.toml"]
+          pattern: 'preinstalled_dir = "/var/lib/openrun/preinstalled-plugins"'
+
+  - it: should render declarative plugin provider installs in the server config
+    template: config-secret.yaml
+    set:
+      registry.enabled: true
+      pluginProviders.install.pdftool: v0.1.0@sha256:8f4e1a2b
+      pluginProviders.releaseUrlTemplate: https://mirror.internal/{provider}/{version}/{os}-{arch}
+    asserts:
+      - matchRegex:
+          path: stringData["openrun.toml"]
+          pattern: '\[plugin_providers\.install\]'
+      - matchRegex:
+          path: stringData["openrun.toml"]
+          pattern: 'pdftool = "v0.1.0@sha256:8f4e1a2b"'
+      - matchRegex:
+          path: stringData["openrun.toml"]
+          pattern: 'release_url_template = "https://mirror.internal/\{provider\}/\{version\}/\{os\}-\{arch\}"'
+
+  - it: should set disable_install for plugin providers when requested
+    template: config-secret.yaml
+    set:
+      registry.enabled: true
+      pluginProviders.disableInstall: true
+    asserts:
+      - matchRegex:
+          path: stringData["openrun.toml"]
+          pattern: '\[plugin_providers\]'
+      - matchRegex:
+          path: stringData["openrun.toml"]
+          pattern: 'disable_install = true'
+
+  - it: should render binding and plugin provider init containers together
+    template: deployment.yaml
+    set:
+      registry.enabled: true
+      bindings.images.redis: ghcr.io/openrundev/openrun-binding-redis:v0.1.0
+      pluginProviders.images.pdftool: ghcr.io/openrundev/openrun-plugin-pdftool:v0.1.0
+    asserts:
+      - contains:
+          path: spec.template.spec.initContainers
+          content:
+            name: binding-provider-redis
+            image: ghcr.io/openrundev/openrun-binding-redis:v0.1.0
+            imagePullPolicy: IfNotPresent
+            command: ["/openrun-binding-redis", "export", "/providers"]
+            volumeMounts:
+              - name: binding-providers
+                mountPath: /providers
+      - contains:
+          path: spec.template.spec.initContainers
+          content:
+            name: plugin-provider-pdftool
+            image: ghcr.io/openrundev/openrun-plugin-pdftool:v0.1.0
+            imagePullPolicy: IfNotPresent
+            command: ["/openrun-plugin-pdftool", "export", "/providers"]
+            volumeMounts:
+              - name: plugin-providers
+                mountPath: /providers

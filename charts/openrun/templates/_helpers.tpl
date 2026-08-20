@@ -61,6 +61,14 @@ app.kubernetes.io/component: server
   {{- end -}}
 {{- end -}}
 
+{{- define "openrun.dbSecretsKeySecretName" -}}
+  {{- if .Values.dbSecrets.existingSecretName -}}
+    {{- .Values.dbSecrets.existingSecretName -}}
+  {{- else -}}
+    {{- printf "%s-db-secrets-key" (include "openrun.fullname" .) -}}
+  {{- end -}}
+{{- end -}}
+
 {{- define "openrun.appsNamespace" -}}
   {{- printf "%s-apps" .Release.Namespace -}}
 {{- end -}}

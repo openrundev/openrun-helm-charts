@@ -211,5 +211,13 @@ force_authn = {{ $provider.forceAuthn }}
 
 [secret.kubernetes]
 
+{{- if .Values.dbSecrets.enabled }}
+{{- $dbKeySecretName := include "openrun.dbSecretsKeySecretName" . }}
+{{- $dbKeyRef := printf "{{secret_from %q %q %q}}" "kubernetes" $dbKeySecretName .Values.dbSecrets.keyName }}
+
+[secret.db]
+key = '{{ $dbKeyRef }}'
+{{- end }}
+
 [app_config]
 security.default_secrets_provider = "kubernetes"
