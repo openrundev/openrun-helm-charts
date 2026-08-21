@@ -70,7 +70,7 @@ template-external-db-password: ## Render templates with external database (passw
 
 install-test-plugin: ## Install helm-unittest plugin
 > @echo "==> Installing helm-unittest plugin..."
-> $(HELM) plugin install https://github.com/helm-unittest/helm-unittest --verify=false || true
+> $(HELM) plugin install https://github.com/helm-unittest/helm-unittest || true
 
 check-deps: ## Check if required tools are installed
 > @echo "==> Checking dependencies..."

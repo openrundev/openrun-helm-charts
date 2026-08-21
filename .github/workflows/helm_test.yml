@@ -33,7 +33,7 @@ jobs:
 
       - name: Install helm-unittest plugin
         # Immutable commit for helm-unittest v0.5.1.
-        run: helm plugin install https://github.com/helm-unittest/helm-unittest --version 96d1ad41ca628db9d10d2ac883d5d5e663efda48 --verify=false
+        run: helm plugin install https://github.com/helm-unittest/helm-unittest --version 96d1ad41ca628db9d10d2ac883d5d5e663efda48
 
       - name: Run verify
         run: make verify
