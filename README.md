@@ -88,6 +88,36 @@ OpenRun builds images with Kaniko and pushes them to the registry that is config
 
 The rendered `openrun.toml` is stored in a secret named `{{ include "openrun.configSecretName" . }}` and mounted at `/var/lib/openrun/openrun.toml`.
 
+## Embedded secrets encryption key
+
+OpenRun encrypts values stored by its `db` secrets provider with a master key that must live outside the metadata database. On the first install, the chart creates an opaque Secret named `<release>-openrun-db-secrets-key` in the release namespace. Its generated `key` value uses OpenRun's `key-id:base64-key` format. The chart retains the existing value on upgrades and renders this reference in `openrun.toml`:
+
+```toml
+[secret.kubernetes]
+
+[secret.db]
+key = '{{secret_from "kubernetes" "<release>-openrun-db-secrets-key" "key"}}'
+```
+
+To use an externally managed Secret instead, configure:
+
+```yaml
+dbSecrets:
+  existingSecretName: openrun-metadata-key
+  keyName: key
+```
+
+The Secret must be in the OpenRun release namespace and its selected data item must contain one or more `<key-id>:<base64-encoded-32-byte-key>` entries separated by commas or newlines.
+
+To rotate the key without losing access to existing values:
+
+1. Prepend a new entry to the Kubernetes Secret while retaining the old entry, for example `k2:<new-key>,k1:<old-key>`.
+2. Restart the OpenRun Deployment so every replica loads the new key ring.
+3. Run `openrun secret rekey` against the server. New and re-encrypted values now use `k2`.
+4. Remove the old entry from the Kubernetes Secret and restart the Deployment again.
+
+Do not remove the old entry before rekeying; values still encrypted with it would become unreadable. Back up externally managed key material separately from the metadata database.
+
 ## Configuring Postgres
 
 The embedded StatefulSet runs a single Postgres instance with persistent storage. It is intended for basic setups and testing—production clusters should either connect to a managed Postgres service or run a fully fledged operator such as CloudNativePG. Customize the in-cluster instance via the `postgres.*` values (storage size, credentials, probes, resources, etc). The OpenRun deployment uses the app user secret to build the Postgres connection string.
@@ -300,6 +330,7 @@ Each entry generates a `[saml.<name>]` section in `openrun.toml`. All keys are o
 | Key                  | Description                                         | Default           |
 | -------------------- | --------------------------------------------------- | ----------------- |
 | `config.registry.*`  | Registry configuration mirrored into `openrun.toml` | see `values.yaml` |
+| `dbSecrets.*`        | Embedded secrets key creation or existing Secret    | generated         |
 | `postgres.enabled`   | Deploy the bundled Postgres StatefulSet             | `true`            |
 | `externalDatabase.*` | Connection info for an existing Postgres instance   | disabled          |
 | `registry.enabled`   | Deploy the in-cluster `registry:2` instance         | `false`           |
