@@ -13,6 +13,7 @@ SHELL := bash
 
 CHART_DIR := charts/openrun
 HELM := helm
+KUBE_REGISTRY_URL ?= localhost:5000
 
 .DEFAULT_GOAL := help
 ifeq ($(origin .RECIPEPREFIX), undefined)
@@ -32,7 +33,7 @@ verify: lint template  template-external-db template-external-db-password test #
 
 lint: ## Lint the Helm chart
 > @echo "==> Linting chart..."
-> $(HELM) lint $(CHART_DIR)
+> $(HELM) lint $(CHART_DIR) --set-string config.registry.url=$(KUBE_REGISTRY_URL)
 
 test: ## Run unit tests using helm-unittest
 > @echo "==> Running unit tests..."
@@ -83,3 +84,7 @@ check-deps: ## Check if required tools are installed
 > fi
 
 ci: lint test ## Run CI checks (same as 'all')
+
+.PHONY: test-integration
+test-integration: ## Install, upgrade and build an app in the current Kubernetes context
+> KUBE_REGISTRY_URL=$(KUBE_REGISTRY_URL) bash tests/integration.sh

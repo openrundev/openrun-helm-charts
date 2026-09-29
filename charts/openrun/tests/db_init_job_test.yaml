@@ -13,19 +13,19 @@ tests:
       - isKind:
           of: Job
       - matchRegex:
-          path: spec.template.spec.containers[0].env[?(@.name=="POSTGRES_APP_DATABASE")].value
+          path: spec.template.spec.initContainers[0].env[?(@.name=="POSTGRES_APP_DATABASE")].value
           pattern: 'myapp_main'
       - matchRegex:
-          path: spec.template.spec.containers[0].env[?(@.name=="POSTGRES_EXTRA_DATABASES")].value
+          path: spec.template.spec.initContainers[0].env[?(@.name=="POSTGRES_EXTRA_DATABASES")].value
           pattern: 'myapp_main'
       - matchRegex:
-          path: spec.template.spec.containers[0].env[?(@.name=="POSTGRES_EXTRA_DATABASES")].value
+          path: spec.template.spec.initContainers[0].env[?(@.name=="POSTGRES_EXTRA_DATABASES")].value
           pattern: 'myapp_audit'
       - matchRegex:
-          path: spec.template.spec.containers[0].env[?(@.name=="POSTGRES_EXTRA_DATABASES")].value
+          path: spec.template.spec.initContainers[0].env[?(@.name=="POSTGRES_EXTRA_DATABASES")].value
           pattern: 'myapp_app_store'
       - matchRegex:
-          path: spec.template.spec.containers[0].env[?(@.name=="POSTGRES_EXTRA_DATABASES")].value
+          path: spec.template.spec.initContainers[0].env[?(@.name=="POSTGRES_EXTRA_DATABASES")].value
           pattern: 'myapp_fs'
 
   # Tests for external database (Terraform)
@@ -41,19 +41,19 @@ tests:
       - isKind:
           of: Job
       - matchRegex:
-          path: spec.template.spec.containers[0].env[?(@.name=="POSTGRES_APP_DATABASE")].value
+          path: spec.template.spec.initContainers[0].env[?(@.name=="POSTGRES_APP_DATABASE")].value
           pattern: 'prod_main'
       - matchRegex:
-          path: spec.template.spec.containers[0].env[?(@.name=="POSTGRES_EXTRA_DATABASES")].value
+          path: spec.template.spec.initContainers[0].env[?(@.name=="POSTGRES_EXTRA_DATABASES")].value
           pattern: 'prod_main'
       - matchRegex:
-          path: spec.template.spec.containers[0].env[?(@.name=="POSTGRES_EXTRA_DATABASES")].value
+          path: spec.template.spec.initContainers[0].env[?(@.name=="POSTGRES_EXTRA_DATABASES")].value
           pattern: 'prod_audit'
       - matchRegex:
-          path: spec.template.spec.containers[0].env[?(@.name=="POSTGRES_EXTRA_DATABASES")].value
+          path: spec.template.spec.initContainers[0].env[?(@.name=="POSTGRES_EXTRA_DATABASES")].value
           pattern: 'prod_app_store'
       - matchRegex:
-          path: spec.template.spec.containers[0].env[?(@.name=="POSTGRES_EXTRA_DATABASES")].value
+          path: spec.template.spec.initContainers[0].env[?(@.name=="POSTGRES_EXTRA_DATABASES")].value
           pattern: 'prod_fs'
 
   - it: should use Terraform secret for credentials
@@ -68,16 +68,16 @@ tests:
       externalDatabase.passwordKey: db_pass
     asserts:
       - equal:
-          path: spec.template.spec.containers[0].env[?(@.name=="POSTGRES_USER")].valueFrom.secretKeyRef.name
+          path: spec.template.spec.initContainers[0].env[?(@.name=="POSTGRES_USER")].valueFrom.secretKeyRef.name
           value: terraform-db-credentials
       - equal:
-          path: spec.template.spec.containers[0].env[?(@.name=="POSTGRES_USER")].valueFrom.secretKeyRef.key
+          path: spec.template.spec.initContainers[0].env[?(@.name=="POSTGRES_USER")].valueFrom.secretKeyRef.key
           value: db_user
       - equal:
-          path: spec.template.spec.containers[0].env[?(@.name=="POSTGRES_PASSWORD")].valueFrom.secretKeyRef.name
+          path: spec.template.spec.initContainers[0].env[?(@.name=="POSTGRES_PASSWORD")].valueFrom.secretKeyRef.name
           value: terraform-db-credentials
       - equal:
-          path: spec.template.spec.containers[0].env[?(@.name=="POSTGRES_PASSWORD")].valueFrom.secretKeyRef.key
+          path: spec.template.spec.initContainers[0].env[?(@.name=="POSTGRES_PASSWORD")].valueFrom.secretKeyRef.key
           value: db_pass
 
   - it: should use custom database names when overridden
@@ -91,19 +91,19 @@ tests:
       config.metadata.fsDatabase: custom_fs
     asserts:
       - matchRegex:
-          path: spec.template.spec.containers[0].env[?(@.name=="POSTGRES_APP_DATABASE")].value
+          path: spec.template.spec.initContainers[0].env[?(@.name=="POSTGRES_APP_DATABASE")].value
           pattern: 'custom_main'
       - matchRegex:
-          path: spec.template.spec.containers[0].env[?(@.name=="POSTGRES_EXTRA_DATABASES")].value
+          path: spec.template.spec.initContainers[0].env[?(@.name=="POSTGRES_EXTRA_DATABASES")].value
           pattern: 'custom_main'
       - matchRegex:
-          path: spec.template.spec.containers[0].env[?(@.name=="POSTGRES_EXTRA_DATABASES")].value
+          path: spec.template.spec.initContainers[0].env[?(@.name=="POSTGRES_EXTRA_DATABASES")].value
           pattern: 'custom_audit'
       - matchRegex:
-          path: spec.template.spec.containers[0].env[?(@.name=="POSTGRES_EXTRA_DATABASES")].value
+          path: spec.template.spec.initContainers[0].env[?(@.name=="POSTGRES_EXTRA_DATABASES")].value
           pattern: 'custom_store'
       - matchRegex:
-          path: spec.template.spec.containers[0].env[?(@.name=="POSTGRES_EXTRA_DATABASES")].value
+          path: spec.template.spec.initContainers[0].env[?(@.name=="POSTGRES_EXTRA_DATABASES")].value
           pattern: 'custom_fs'
 
   - it: should connect to external database host
@@ -115,8 +115,43 @@ tests:
       externalDatabase.existingSecretName: my-secret
     asserts:
       - equal:
-          path: spec.template.spec.containers[0].env[?(@.name=="POSTGRES_HOST")].value
+          path: spec.template.spec.initContainers[0].env[?(@.name=="POSTGRES_HOST")].value
           value: terraform-rds.example.com
       - equal:
-          path: spec.template.spec.containers[0].env[?(@.name=="POSTGRES_PORT")].value
+          path: spec.template.spec.initContainers[0].env[?(@.name=="POSTGRES_PORT")].value
           value: "5433"
+
+  - it: creates a distinct initialization job for an upgrade
+    release:
+      name: smoke
+      revision: 7
+      isUpgrade: true
+    asserts:
+      - equal:
+          path: metadata.name
+          value: smoke-openrun-db-init-7
+      - matchRegex:
+          path: spec.template.spec.containers[0].command[2]
+          pattern: 'MARKER_NAME="smoke-openrun-db-init-7-complete"'
+
+  - it: initializes the database before publishing completion without installing packages
+    set:
+      imagePullSecrets:
+        - name: private-registry
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].image
+          value: postgres:16.4
+      - matchRegex:
+          path: spec.template.spec.initContainers[0].command[2]
+          pattern: 'export PGPORT="\$POSTGRES_PORT"'
+      - notMatchRegex:
+          path: spec.template.spec.initContainers[0].command[2]
+          pattern: 'apt-get|curl'
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: curlimages/curl:8.6.0
+      - equal:
+          path: spec.template.spec.imagePullSecrets
+          value:
+            - name: private-registry

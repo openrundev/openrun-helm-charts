@@ -70,7 +70,7 @@ spec:
 
               echo "Waiting for db-init completion marker..."
               while true; do
-                if curl -fsS --cacert "$CA" -H "Authorization: Bearer $TOKEN" "$API" >/dev/null 2>&1; then
+                if curl --connect-timeout 5 --max-time 10 -fsS --cacert "$CA" -H "Authorization: Bearer $TOKEN" "$API" 2>/dev/null | grep -q '"completedAt"[[:space:]]*:'; then
                   echo "db-init completed"
                   exit 0
                 fi

@@ -1,0 +1,12 @@
+{{- if or .Values.postgres.enabled .Values.externalDatabase.enabled }}
+# Helm manages the marker's lifetime so old revisions are removed on upgrade.
+# The Job fills in completedAt only after SQL initialization succeeds.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "openrun.dbInitMarkerName" . }}
+  labels:
+    {{- include "openrun.labels" . | nindent 4 }}
+    app.kubernetes.io/component: db-init
+data: {}
+{{- end }}

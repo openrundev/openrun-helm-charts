@@ -1,4 +1,7 @@
 {{- if .Values.postgres.enabled }}
+{{- if ne (int .Values.postgres.replicaCount) 1 }}
+{{- fail "postgres.replicaCount must be 1: the bundled PostgreSQL has no replication; use externalDatabase for high availability" }}
+{{- end }}
 {{- $clusterName := include "openrun.postgresClusterName" . -}}
 apiVersion: v1
 kind: Service
@@ -124,7 +127,7 @@ data:
     fi
 
     echo "Waiting for Postgres to accept connections..."
-    until pg_isready -h 127.0.0.1 -p "{{ .Values.postgres.service.port }}" -U "$POSTGRES_USER" >/dev/null 2>&1; do
+    until pg_isready -h 127.0.0.1 -p 5432 -U "$POSTGRES_USER" >/dev/null 2>&1; do
       sleep 2
     done
     run_all with-host
@@ -170,7 +173,7 @@ spec:
           imagePullPolicy: {{ .Values.postgres.image.pullPolicy }}
           ports:
             - name: postgres
-              containerPort: {{ .Values.postgres.service.port }}
+              containerPort: 5432
               protocol: TCP
           env:
             - name: POSTGRES_DB

@@ -110,6 +110,7 @@ postgres:
   # point OpenRun at a managed Postgres service or a CloudNativePG deployment.
   enabled: true
   clusterName: openrun-db
+  # Only one instance is supported; these pods do not replicate data.
   replicaCount: 1
   image:
     repository: postgres
@@ -174,6 +175,7 @@ externalDatabase:
 dbInit:
   waitForJob: true
   waitTimeoutSeconds: 600
+  # Used both to publish database initialization completion and to wait for it.
   waitImage:
     repository: curlimages/curl
     tag: "8.6.0"

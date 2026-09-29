@@ -1,0 +1,75 @@
+suite: Deployment Stability Tests
+templates:
+  - deployment.yaml
+  - postgres-cluster.yaml
+  - config-secret.yaml
+  - db-init-marker.yaml
+tests:
+  - it: waits for the current release initialization instead of an old completion marker
+    release:
+      name: smoke
+      revision: 7
+      isUpgrade: true
+    set:
+      config.registry.url: registry.orb.local:5000
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.initContainers[0].command[2]
+          pattern: 'MARKER="smoke-openrun-db-init-7-complete"'
+        template: deployment.yaml
+      - matchRegex:
+          path: spec.template.spec.initContainers[0].command[2]
+          pattern: 'grep -q.*completedAt'
+        template: deployment.yaml
+      - equal:
+          path: metadata.name
+          value: smoke-openrun-db-init-7-complete
+        template: db-init-marker.yaml
+      - equal:
+          path: data
+          value: {}
+        template: db-init-marker.yaml
+
+  - it: refuses independent Postgres replicas behind one service
+    set:
+      config.registry.url: registry.orb.local:5000
+      postgres.replicaCount: 2
+    asserts:
+      - failedTemplate:
+          errorMessage: 'postgres.replicaCount must be 1: the bundled PostgreSQL has no replication; use externalDatabase for high availability'
+        template: postgres-cluster.yaml
+
+  - it: routes a custom database service port to the actual Postgres listener
+    set:
+      config.registry.url: registry.orb.local:5000
+      postgres.service.port: 5544
+    asserts:
+      - equal:
+          path: spec.ports[0].port
+          value: 5544
+        template: postgres-cluster.yaml
+        documentIndex: 0
+      - equal:
+          path: spec.template.spec.containers[0].ports[0].containerPort
+          value: 5432
+        template: postgres-cluster.yaml
+        documentIndex: 2
+      - matchRegex:
+          path: data["ensure-app-user.sh"]
+          pattern: 'pg_isready -h 127.0.0.1 -p 5432'
+        template: postgres-cluster.yaml
+        documentIndex: 1
+      - matchRegex:
+          path: stringData["openrun.toml"]
+          pattern: '@openrun-db\..*:5544/'
+        template: config-secret.yaml
+
+  - it: accepts an admin password containing YAML punctuation
+    set:
+      config.registry.url: registry.orb.local:5000
+      config.security.adminPassword: 'prefix: secret # suffix'
+    asserts:
+      - matchRegex:
+          path: stringData["openrun.toml"]
+          pattern: 'admin_password_bcrypt = "\$2[aby]\$'
+        template: config-secret.yaml

@@ -31,7 +31,7 @@ kubectl get svc openrun -n openrun
 
 ## Admin credentials
 
-By default the chart generates a random admin password on install and prints it once in the Helm notes. To provide your own password, set `config.security.adminPassword`. To use a pre-generated bcrypt hash instead, set `config.security.adminPasswordBcrypt` (it takes precedence over `adminPassword`).
+By default the chart generates a random admin password on install and prints it once in the Helm notes. Upgrades preserve the existing password hash unless you explicitly supply a password or bcrypt hash. To provide your own password, set `config.security.adminPassword`. To use a pre-generated bcrypt hash instead, set `config.security.adminPasswordBcrypt` (it takes precedence over `adminPassword`).
 
 ```yaml
 config:
@@ -247,3 +247,18 @@ Each entry generates a `[saml.<name>]` section in `openrun.toml`. All keys are o
 | `imagePullSecrets`   | Pull secrets for the server pod (server + provider images) | `[]`       |
 
 Refer to `values.yaml` for the full list of tunables.
+
+## Stability tests
+
+Run `KUBE_REGISTRY_URL=registry.orb.local:5000 gmake verify` for chart checks.
+Run `KUBE_REGISTRY_URL=registry.orb.local:5000 gmake test-integration` against a
+local Kubernetes context to test installation, immediate upgrades, database
+ports, credential retention, and an application build using `../openrun`.
+The integration test creates temporary namespaces and removes them on exit.
+The registry must be reachable from build pods and trusted by cluster nodes.
+
+Database initialization runs once per Helm release revision, before the new
+server pods start. It uses the Postgres image for SQL and `dbInit.waitImage` to
+publish completion, without downloading OS packages at runtime. The bundled
+Postgres supports exactly one replica; use an external replicated database for
+high availability.
